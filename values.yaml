@@ -345,14 +345,16 @@ falcosidekick:
     # -- Custom fields added to all alerts
     customfields: ""
 
-    # -- Loki output
+    # -- Loki output (auto-configured based on release name)
+    # URL will be: http://<release-name>-loki:3100
     loki:
-      hostport: ""  # Will be set by template
+      hostport: "http://sib-k8s-loki:3100"
       minimumpriority: ""
 
     # -- Webhook output (to analysis service)
+    # URL will be: http://<release-name>-analysis:8080/webhook
     webhook:
-      address: ""  # Will be set by template
+      address: "http://sib-k8s-analysis:8080/webhook"
       minimumpriority: ""
 
     # -- Additional outputs (Slack, Teams, PagerDuty, etc.)
