@@ -9,11 +9,11 @@ description: |
   - Loki for log aggregation and storage
   - AI-powered alert analysis with privacy-preserving obfuscation
   - Grafana dashboards for visualization
-  
+
   Supports multiple Kubernetes environments:
   - Generic Kubernetes (k8saudit)
   - AWS EKS (k8saudit-eks)
-  - Google GKE (k8saudit-gke)  
+  - Google GKE (k8saudit-gke)
   - Azure AKS (k8saudit-aks)
 
 type: application
@@ -49,19 +49,19 @@ dependencies:
     version: "4.20.0"
     repository: "https://falcosecurity.github.io/charts"
     condition: falco.enabled
-  
+
   # Falcosidekick - Alert Routing
   - name: falcosidekick
     version: "0.9.5"
     repository: "https://falcosecurity.github.io/charts"
     condition: falcosidekick.enabled
-  
+
   # Loki - Log Aggregation
   - name: loki
     version: "6.24.0"
     repository: "https://grafana.github.io/helm-charts"
     condition: loki.enabled
-  
+
   # Grafana - Visualization
   - name: grafana
     version: "8.8.2"
