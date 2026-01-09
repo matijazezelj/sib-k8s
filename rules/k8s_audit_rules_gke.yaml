@@ -1,0 +1,92 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2024 The Falco Authors.
+# Source: https://github.com/falcosecurity/plugins/blob/main/plugins/k8saudit-gke/rules/k8s_audit_rules_gke.yaml
+#
+# GKE-specific overrides and additions for k8s audit rules
+
+- required_engine_version: 0.31.0
+
+- required_plugin_versions:
+  - name: k8saudit-gke
+    version: 0.1.0
+  - name: json
+    version: 0.7.0
+
+# Allow the Google Container Engine robot serviceaccount
+- rule: Disallowed K8s User
+  exceptions:
+    - name: google-container-engine-robot
+      fields: [ka.user.name]
+      comps: [endswith]
+      values:
+        - ["@container-engine-robot.iam.gserviceaccount.com"]
+  override:
+    exceptions: append
+
+# Additional images allowed to run as 'privileged' containers
+- list: k8s_audit_privileged_images
+  items:
+    [
+      gke.gcr.io/netd,
+      gke.gcr.io/csi-node-driver-registrar,
+      gke.gcr.io/gcp-compute-persistent-disk-csi-driver,
+      gke.gcr.io/kube-proxy-amd64,
+      gke.gcr.io/k8s-dns-node-cache,
+    ]
+  override:
+    items: append
+
+# Additional images allowed to run with hostNetwork=true
+- list: k8s_audit_hostnetwork_images
+  items:
+    [
+      gcr.io/gke-release/cnrm/recorder,
+      gke.gcr.io/csi-node-driver-registrar,
+      gke.gcr.io/fluent-bit,
+      gke.gcr.io/fluent-bit-gke-exporter,
+      gke.gcr.io/gcp-compute-persistent-disk-csi-driver,
+      gke.gcr.io/gke-metrics-agent,
+      gke.gcr.io/k8s-dns-node-cache,
+      gke.gcr.io/kube-proxy-amd64,
+      gke.gcr.io/netd,
+      gke.gcr.io/proxy-agent,
+      k8s.gcr.io/prometheus-to-sd,
+    ]
+  override:
+    items: append
+
+# Additional images allowed to mount sensitive paths
+- list: k8s_audit_sensitive_mount_images
+  items:
+    [
+      gke.gcr.io/csi-node-driver-registrar,
+      gke.gcr.io/gcp-compute-persistent-disk-csi-driver,
+    ]
+  override:
+    items: append
+
+# Additional images allowed in the kube-system namespace
+- list: user_allowed_kube_namespace_image_list
+  items:
+    [
+      gke.gcr.io/addon-resizer,
+      gke.gcr.io/cluster-proportional-autoscaler,
+      gke.gcr.io/csi-node-driver-registrar,
+      gke.gcr.io/event-exporter,
+      gke.gcr.io/fluent-bit,
+      gke.gcr.io/fluent-bit-gke-exporter,
+      gke.gcr.io/gcp-compute-persistent-disk-csi-driver,
+      gke.gcr.io/gke-metrics-agent,
+      gke.gcr.io/ingress-gce-404-server-with-metrics,
+      gke.gcr.io/k8s-dns-dnsmasq-nanny,
+      gke.gcr.io/k8s-dns-kube-dns,
+      gke.gcr.io/k8s-dns-node-cache,
+      gke.gcr.io/k8s-dns-sidecar,
+      gke.gcr.io/kube-proxy-amd64,
+      gke.gcr.io/metrics-server,
+      gke.gcr.io/netd,
+      gke.gcr.io/prometheus-to-sd,
+      gke.gcr.io/proxy-agent,
+    ]
+  override:
+    items: append
