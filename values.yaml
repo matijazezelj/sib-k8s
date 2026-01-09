@@ -269,9 +269,25 @@ falco:
   enabled: true
 
   # -- Controller type: daemonset for syscall, deployment for plugins only
-  # Automatically set based on syscallMonitoring.enabled
   controller:
-    kind: ""  # Will be set by template
+    kind: daemonset
+
+  # -- Driver configuration for syscall monitoring
+  driver:
+    enabled: true
+    kind: modern_ebpf
+
+  # -- Collectors for container metadata
+  collectors:
+    enabled: true
+
+  # -- Taint and tolerations for daemonset
+  tty: false
+
+  # -- Tell Falco to send alerts to Falcosidekick
+  # This auto-configures HTTP output to the Falcosidekick service
+  falcosidekick:
+    enabled: true
 
   # -- Custom Falco rules
   customRules: {}
@@ -292,11 +308,6 @@ falco:
     json_output: true
     json_include_output_property: true
     json_include_tags_property: true
-
-    # -- HTTP output (to falcosidekick)
-    http_output:
-      enabled: true
-      url: ""  # Will be set by template
 
     # -- Metrics
     metrics:
