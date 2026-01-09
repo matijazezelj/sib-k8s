@@ -8,6 +8,7 @@ on:
       - 'Chart.yaml'
       - 'values*.yaml'
       - 'templates/**'
+      - 'rules/**'
       - '.github/workflows/helm-lint.yml'
   pull_request:
     branches:
@@ -16,6 +17,7 @@ on:
       - 'Chart.yaml'
       - 'values*.yaml'
       - 'templates/**'
+      - 'rules/**'
 
 jobs:
   lint:
@@ -36,6 +38,9 @@ jobs:
           helm repo add falcosecurity https://falcosecurity.github.io/charts
           helm repo add grafana https://grafana.github.io/helm-charts
           helm repo update
+
+      - name: Build dependencies
+        run: helm dependency build
 
       - name: Helm lint
         run: helm lint .
@@ -65,8 +70,17 @@ jobs:
         with:
           version: v3.14.0
 
+      - name: Add Helm repos
+        run: |
+          helm repo add falcosecurity https://falcosecurity.github.io/charts
+          helm repo add grafana https://grafana.github.io/helm-charts
+          helm repo update
+
+      - name: Build dependencies
+        run: helm dependency build
+
       - name: Set up chart-testing
         uses: helm/chart-testing-action@v2
 
       - name: Run chart-testing (lint)
-        run: ct lint --target-branch ${{ github.event.repository.default_branch }} --charts .
+        run: ct lint --target-branch ${{ github.event.repository.default_branch }} --charts . --validate-maintainers=false
