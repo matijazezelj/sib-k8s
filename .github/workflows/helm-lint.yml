@@ -51,7 +51,10 @@ jobs:
         run: helm lint .
 
       - name: Helm template (default)
-        run: helm template sib-k8s . 
+        run: |
+          echo "Checking charts dir before template:"
+          ls -la charts/ || echo "charts dir missing!"
+          helm template sib-k8s .
 
       - name: Helm template (EKS)
         run: helm template sib-k8s . -f values-eks.yaml
