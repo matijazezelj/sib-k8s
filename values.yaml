@@ -322,12 +322,9 @@ falcosidekick:
   # -- Number of replicas
   replicaCount: 1
 
-  # -- Web UI
+  # -- Web UI (disabled - using Grafana instead)
   webui:
-    enabled: true
-    replicaCount: 1
-    redis:
-      enabled: true
+    enabled: false
 
   # -- Output configuration
   config:

@@ -15,11 +15,9 @@ data:
 
     replicaCount: {{ .Values.falcosidekick.replicaCount }}
 
+    # WebUI disabled - using Grafana for visualization
     webui:
-      enabled: {{ .Values.falcosidekick.webui.enabled }}
-      replicaCount: {{ .Values.falcosidekick.webui.replicaCount }}
-      redis:
-        enabled: {{ .Values.falcosidekick.webui.redis.enabled }}
+      enabled: false
 
     config:
       debug: {{ .Values.falcosidekick.config.debug }}
