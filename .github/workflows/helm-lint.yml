@@ -42,7 +42,10 @@ jobs:
       - name: Build dependencies
         run: |
           helm dependency build
+          echo "Charts directory contents:"
           ls -la charts/
+          echo "Verifying helm can see deps:"
+          helm dependency list
 
       - name: Helm lint
         run: helm lint .
@@ -85,4 +88,4 @@ jobs:
         uses: helm/chart-testing-action@v2
 
       - name: Run chart-testing (lint)
-        run: ct lint --target-branch ${{ github.event.repository.default_branch }} --charts . --validate-maintainers=false --build-id ${{ github.run_id }}
+        run: ct lint --target-branch ${{ github.event.repository.default_branch }} --charts . --validate-maintainers=false
