@@ -187,7 +187,7 @@ analysis:
   replicaCount: 1
   
   image:
-    repository: ghcr.io/matijazezelj/sib-analysis
+    repository: ghcr.io/matijazezelj/sib-k8s-analyzer
     tag: latest
     pullPolicy: IfNotPresent
   
