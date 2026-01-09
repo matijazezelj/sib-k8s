@@ -1,0 +1,7 @@
+# Downloaded chart dependencies
+charts/*.tgz
+
+# Local dev files
+.DS_Store
+*.swp
+*.bak

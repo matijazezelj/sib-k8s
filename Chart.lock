@@ -1,0 +1,15 @@
+dependencies:
+- name: falco
+  repository: https://falcosecurity.github.io/charts
+  version: 4.20.0
+- name: falcosidekick
+  repository: https://falcosecurity.github.io/charts
+  version: 0.9.5
+- name: loki
+  repository: https://grafana.github.io/helm-charts
+  version: 6.24.0
+- name: grafana
+  repository: https://grafana.github.io/helm-charts
+  version: 8.8.2
+digest: sha256:f962c12f477079914a1b65176347b978672c9e58bf65de74ad8673fe3f990e4c
+generated: "2026-01-09T23:12:57.551464+01:00"
