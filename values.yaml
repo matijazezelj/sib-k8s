@@ -284,16 +284,22 @@ falco:
   # -- Taint and tolerations for daemonset
   tty: false
 
-  # -- Tell Falco to send alerts to Falcosidekick
-  # This auto-configures HTTP output to the Falcosidekick service
+  # -- Disable built-in falcosidekick (we deploy it as separate chart)
+  # We configure http_output manually below
   falcosidekick:
-    enabled: true
+    enabled: false
 
   # -- Custom Falco rules
   customRules: {}
 
   # -- Falco configuration overrides
   falco:
+    # -- HTTP output to Falcosidekick
+    http_output:
+      enabled: true
+      url: "http://sib-k8s-falcosidekick:2801"
+      insecure: true
+
     # -- Rules files to load
     rules_files:
       - /etc/falco/falco_rules.yaml
