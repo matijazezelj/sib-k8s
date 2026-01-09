@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - 'Chart.yaml'
+      - 'Chart.lock'
+      - '.helmignore'
       - 'values*.yaml'
       - 'templates/**'
       - 'rules/**'
@@ -15,6 +17,8 @@ on:
       - main
     paths:
       - 'Chart.yaml'
+      - 'Chart.lock'
+      - '.helmignore'
       - 'values*.yaml'
       - 'templates/**'
       - 'rules/**'
