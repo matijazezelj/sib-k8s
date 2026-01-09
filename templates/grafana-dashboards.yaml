@@ -310,7 +310,7 @@ data:
       "version": 1,
       "weekStart": ""
     }
-  
+
   sib-k8s-k8saudit.json: |
     {
       "annotations": {

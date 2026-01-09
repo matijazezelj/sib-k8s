@@ -12,22 +12,22 @@ metadata:
 data:
   sidekick-values.yaml: |
     # Auto-generated Falcosidekick configuration for SIB-K8s
-    
+
     replicaCount: {{ .Values.falcosidekick.replicaCount }}
-    
+
     webui:
       enabled: {{ .Values.falcosidekick.webui.enabled }}
       replicaCount: {{ .Values.falcosidekick.webui.replicaCount }}
       redis:
         enabled: {{ .Values.falcosidekick.webui.redis.enabled }}
-    
+
     config:
       debug: {{ .Values.falcosidekick.config.debug }}
-      
+
       {{- if .Values.falcosidekick.config.customfields }}
       customfields: {{ .Values.falcosidekick.config.customfields | quote }}
       {{- end }}
-      
+
       # Loki output
       {{- if .Values.loki.enabled }}
       loki:
@@ -42,7 +42,7 @@ data:
         minimumpriority: {{ . | quote }}
         {{- end }}
       {{- end }}
-      
+
       # Webhook output (to analysis service)
       {{- if .Values.analysis.enabled }}
       webhook:
@@ -57,7 +57,7 @@ data:
         minimumpriority: {{ . | quote }}
         {{- end }}
       {{- end }}
-      
+
       # Slack output
       {{- if .Values.falcosidekick.config.slack.webhookurl }}
       slack:
@@ -66,7 +66,7 @@ data:
         minimumpriority: {{ . | quote }}
         {{- end }}
       {{- end }}
-      
+
       # Teams output
       {{- if .Values.falcosidekick.config.teams.webhookurl }}
       teams:
@@ -75,7 +75,7 @@ data:
         minimumpriority: {{ . | quote }}
         {{- end }}
       {{- end }}
-      
+
       # PagerDuty output
       {{- if .Values.falcosidekick.config.pagerduty.routingkey }}
       pagerduty:
@@ -84,7 +84,7 @@ data:
         minimumpriority: {{ . | quote }}
         {{- end }}
       {{- end }}
-      
+
       # AlertManager output
       {{- if .Values.falcosidekick.config.alertmanager.hostport }}
       alertmanager:
@@ -93,7 +93,7 @@ data:
         minimumpriority: {{ . | quote }}
         {{- end }}
       {{- end }}
-      
+
       # Elasticsearch output
       {{- if .Values.falcosidekick.config.elasticsearch.hostport }}
       elasticsearch:

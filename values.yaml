@@ -6,10 +6,10 @@
 global:
   # -- Namespace to deploy all components
   namespace: sib-k8s
-  
+
   # -- Common labels applied to all resources
   labels: {}
-  
+
   # -- Image pull secrets for private registries
   imagePullSecrets: []
 
@@ -25,13 +25,13 @@ global:
 auditPlugin:
   # -- Which k8saudit plugin to use: k8saudit, k8saudit-eks, k8saudit-gke, k8saudit-aks
   type: k8saudit
-  
+
   # -- Plugin version to install
   version: "0.16"
-  
+
   # -- Rules version to install
   rulesVersion: "0.16"
-  
+
   # =============================================================================
   # Generic k8saudit configuration (webhook-based)
   # Use when: You want to receive audit logs via webhook from any K8s cluster
@@ -51,7 +51,7 @@ auditPlugin:
     sslCertificate: ""
     # -- Additional init config as JSON
     initConfig: ""
-    
+
   # =============================================================================
   # AWS EKS Configuration
   # Use when: Running on AWS EKS and using CloudWatch for audit logs
@@ -59,40 +59,40 @@ auditPlugin:
   k8sauditEks:
     # -- Enable EKS audit log collection
     enabled: false
-    
+
     # -- AWS Region
     region: us-east-1
-    
+
     # -- CloudWatch Log Group name (usually /aws/eks/<cluster-name>/cluster)
     logGroup: ""
-    
+
     # -- CloudWatch Log Stream name (usually kube-apiserver-audit-*)
     logStream: ""
-    
+
     # -- Shift in seconds for CloudWatch logs
     shift: 10
-    
+
     # -- Polling interval in seconds
     pollingInterval: 5
-    
+
     # -- Use EKS Service Account IAM role (recommended)
     useIRSA: true
-    
+
     # -- IAM Role ARN for IRSA (leave empty to use node role)
     iamRoleArn: ""
-    
+
     # -- AWS credentials (not recommended, use IRSA instead)
     credentials:
       accessKeyId: ""
       secretAccessKey: ""
       sessionToken: ""
-    
+
     # -- Profile from ~/.aws/credentials
     profile: ""
-    
+
     # -- Maximum event size in bytes
     maxEventSize: 262144
-    
+
   # =============================================================================
   # Google GKE Configuration
   # Use when: Running on Google GKE
@@ -100,28 +100,28 @@ auditPlugin:
   k8sauditGke:
     # -- Enable GKE audit log collection
     enabled: false
-    
+
     # -- GCP Project ID
     projectId: ""
-    
+
     # -- GKE Cluster ID
     clusterId: ""
-    
+
     # -- GCP Region or Zone
     location: ""
-    
+
     # -- Use Workload Identity (recommended)
     useWorkloadIdentity: true
-    
+
     # -- Service Account email for Workload Identity
     serviceAccountEmail: ""
-    
+
     # -- Path to service account JSON key file (not recommended)
     credentialsFile: ""
-    
+
     # -- Polling interval in seconds
     pollingInterval: 5
-    
+
   # =============================================================================
   # Azure AKS Configuration
   # Use when: Running on Azure AKS
@@ -129,34 +129,34 @@ auditPlugin:
   k8sauditAks:
     # -- Enable AKS audit log collection
     enabled: false
-    
+
     # -- Azure Subscription ID
     subscriptionId: ""
-    
+
     # -- Azure Resource Group
     resourceGroup: ""
-    
+
     # -- AKS Cluster Name
     clusterName: ""
-    
+
     # -- Event Hub Namespace
     eventHubNamespace: ""
-    
+
     # -- Event Hub Name
     eventHubName: ""
-    
+
     # -- Consumer Group
     consumerGroup: "$Default"
-    
+
     # -- Use Azure Workload Identity (recommended)
     useWorkloadIdentity: true
-    
+
     # -- Azure credentials (not recommended, use Workload Identity)
     credentials:
       tenantId: ""
       clientId: ""
       clientSecret: ""
-    
+
     # -- Connection string for Event Hub (alternative to Workload Identity)
     connectionString: ""
 
@@ -166,13 +166,13 @@ auditPlugin:
 syscallMonitoring:
   # -- Enable syscall monitoring in addition to k8s audit
   enabled: true
-  
+
   # -- Driver type: auto, kmod, ebpf, modern_ebpf
   driverKind: modern_ebpf
-  
+
   # -- Buffer size preset (1-8, higher = more memory but fewer drops)
   bufSizePreset: 4
-  
+
   # -- Drop failed syscall exit events
   dropFailedExit: false
 
@@ -182,20 +182,20 @@ syscallMonitoring:
 analysis:
   # -- Enable AI-powered analysis service
   enabled: true
-  
+
   # -- Number of replicas
   replicaCount: 1
-  
+
   image:
     repository: ghcr.io/matijazezelj/sib-k8s-analyzer
     tag: latest
     pullPolicy: IfNotPresent
-  
+
   # -- Service configuration
   service:
     type: ClusterIP
     port: 8080
-  
+
   # -- Resource limits
   resources:
     requests:
@@ -204,32 +204,32 @@ analysis:
     limits:
       cpu: 500m
       memory: 512Mi
-  
+
   # -- Obfuscation configuration
   obfuscation:
     # -- Obfuscation level: minimal, standard, paranoid
     level: standard
-    
+
     # -- Custom patterns to obfuscate (regex)
     customPatterns: {}
-    
+
     # -- Fields to always preserve (not obfuscate)
     preserveFields:
       - rule
       - priority
       - source
-    
+
   # -- LLM Provider configuration
   llm:
     # -- Provider: ollama, openai, anthropic
     provider: ollama
-    
+
     # -- Ollama configuration
     ollama:
       url: http://ollama:11434
       model: llama3.1:8b
       timeout: 120
-    
+
     # -- OpenAI configuration
     openai:
       # -- API key (use secret reference in production)
@@ -239,7 +239,7 @@ analysis:
       secretKey: "api-key"
       model: gpt-4o-mini
       maxTokens: 2000
-    
+
     # -- Anthropic configuration
     anthropic:
       apiKey: ""
@@ -247,13 +247,13 @@ analysis:
       secretKey: "api-key"
       model: claude-3-haiku-20240307
       maxTokens: 2000
-  
+
   # -- Analysis caching
   cache:
     enabled: true
     ttl: 3600
     maxSize: 1000
-  
+
   # -- Grafana integration
   grafana:
     # -- Enable data link integration
@@ -267,15 +267,15 @@ analysis:
 falco:
   # -- Enable Falco deployment
   enabled: true
-  
+
   # -- Controller type: daemonset for syscall, deployment for plugins only
   # Automatically set based on syscallMonitoring.enabled
   controller:
     kind: ""  # Will be set by template
-  
+
   # -- Custom Falco rules
   customRules: {}
-  
+
   # -- Falco configuration overrides
   falco:
     # -- Rules files to load
@@ -284,26 +284,26 @@ falco:
       - /etc/falco/falco_rules.local.yaml
       - /etc/falco/k8s_audit_rules.yaml
       - /etc/falco/rules.d
-    
+
     # -- Priority level
     priority: warning
-    
+
     # -- JSON output
     json_output: true
     json_include_output_property: true
     json_include_tags_property: true
-    
+
     # -- HTTP output (to falcosidekick)
     http_output:
       enabled: true
       url: ""  # Will be set by template
-    
+
     # -- Metrics
     metrics:
       enabled: true
       interval: 1h
       outputRule: true
-      
+
   # -- Falcoctl configuration for artifact management
   falcoctl:
     artifact:
@@ -318,52 +318,52 @@ falco:
 falcosidekick:
   # -- Enable Falcosidekick
   enabled: true
-  
+
   # -- Number of replicas
   replicaCount: 1
-  
+
   # -- Web UI
   webui:
     enabled: true
     replicaCount: 1
     redis:
       enabled: true
-  
+
   # -- Output configuration
   config:
     # -- Debug mode
     debug: false
-    
+
     # -- Custom fields added to all alerts
     customfields: ""
-    
+
     # -- Loki output
     loki:
       hostport: ""  # Will be set by template
       minimumpriority: ""
-      
+
     # -- Webhook output (to analysis service)
     webhook:
       address: ""  # Will be set by template
       minimumpriority: ""
-      
+
     # -- Additional outputs (Slack, Teams, PagerDuty, etc.)
     slack:
       webhookurl: ""
       minimumpriority: ""
-      
+
     teams:
       webhookurl: ""
       minimumpriority: ""
-      
+
     pagerduty:
       routingkey: ""
       minimumpriority: ""
-      
+
     alertmanager:
       hostport: ""
       minimumpriority: ""
-      
+
     elasticsearch:
       hostport: ""
       index: "falco"
@@ -375,10 +375,10 @@ falcosidekick:
 loki:
   # -- Enable Loki deployment
   enabled: true
-  
+
   # -- Deployment mode: SingleBinary, SimpleScalable, Distributed
   deploymentMode: SingleBinary
-  
+
   # -- Single binary mode config
   singleBinary:
     replicas: 1
@@ -389,11 +389,11 @@ loki:
       limits:
         cpu: 1
         memory: 1Gi
-  
+
   # -- Loki configuration
   loki:
     auth_enabled: false
-    
+
     # -- Schema config
     schemaConfig:
       configs:
@@ -404,43 +404,43 @@ loki:
           index:
             prefix: index_
             period: 24h
-    
+
     # -- Storage config
     storage:
       type: filesystem
       filesystem:
         chunks_directory: /var/loki/chunks
         rules_directory: /var/loki/rules
-    
+
     # -- Limits config
     limits_config:
       retention_period: 168h  # 7 days
       max_query_series: 10000
       ingestion_rate_mb: 10
       ingestion_burst_size_mb: 20
-    
+
     # -- Compactor config for retention
     compactor:
       working_directory: /var/loki/retention
       delete_request_store: filesystem
       retention_enabled: true
-  
+
   # -- Gateway configuration
   gateway:
     enabled: false
-  
+
   # -- Backend configuration
   backend:
     replicas: 0
-  
+
   # -- Read replicas
   read:
     replicas: 0
-  
+
   # -- Write replicas
   write:
     replicas: 0
-  
+
   # -- Persistence
   persistence:
     enabled: true
@@ -453,16 +453,16 @@ loki:
 grafana:
   # -- Enable Grafana deployment
   enabled: true
-  
+
   # -- Admin credentials
   adminUser: admin
   adminPassword: ""  # Will be auto-generated if empty
-  
+
   # -- Persistence
   persistence:
     enabled: true
     size: 1Gi
-  
+
   # -- Datasources
   datasources:
     datasources.yaml:
@@ -475,7 +475,7 @@ grafana:
           isDefault: true
           jsonData:
             maxLines: 1000
-  
+
   # -- Dashboards
   dashboardProviders:
     dashboardproviders.yaml:
@@ -489,11 +489,11 @@ grafana:
           editable: true
           options:
             path: /var/lib/grafana/dashboards/sib-k8s
-  
+
   # -- Dashboard configmaps (created by sib-k8s)
   dashboardsConfigMaps:
     sib-k8s: "sib-k8s-dashboards"
-  
+
   # -- Grafana.ini configuration
   grafana.ini:
     server:
@@ -509,13 +509,13 @@ grafana:
 ingress:
   # -- Enable ingress
   enabled: false
-  
+
   # -- Ingress class name
   className: nginx
-  
+
   # -- Annotations
   annotations: {}
-  
+
   # -- Hosts configuration
   hosts:
     - host: sib-k8s.local
@@ -529,7 +529,7 @@ ingress:
         - path: /sidekick
           pathType: Prefix
           service: falcosidekick-ui
-  
+
   # -- TLS configuration
   tls: []
 
@@ -539,13 +539,13 @@ ingress:
 serviceMonitor:
   # -- Enable ServiceMonitor creation
   enabled: false
-  
+
   # -- Labels for ServiceMonitor
   labels: {}
-  
+
   # -- Scrape interval
   interval: 30s
-  
+
   # -- Scrape timeout
   scrapeTimeout: 10s
 
@@ -555,7 +555,7 @@ serviceMonitor:
 networkPolicies:
   # -- Enable network policies
   enabled: false
-  
+
   # -- Allow ingress from specific namespaces
   allowedNamespaces:
     - kube-system
@@ -574,7 +574,7 @@ podSecurityPolicy:
 customRules:
   # -- Enable custom rules ConfigMap
   enabled: false
-  
+
   # -- Custom Falco rules
   rules: |
     # Add your custom Falco rules here

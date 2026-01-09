@@ -8,30 +8,30 @@ auditPlugin:
   type: k8saudit-eks
   version: "0.16"
   rulesVersion: "0.16"
-  
+
   k8sauditEks:
     enabled: true
-    
+
     # AWS Region where your EKS cluster is located
     region: us-east-1
-    
+
     # CloudWatch Log Group - usually /aws/eks/<cluster-name>/cluster
     # Replace <cluster-name> with your actual EKS cluster name
     logGroup: "/aws/eks/my-cluster/cluster"
-    
+
     # Log Stream pattern - usually kube-apiserver-audit-*
     logStream: "kube-apiserver-audit-*"
-    
+
     # Polling configuration
     shift: 10
     pollingInterval: 5
-    
+
     # Maximum event size (default is fine for most use cases)
     maxEventSize: 262144
-    
+
     # IAM Role for Service Accounts (IRSA) - Recommended approach
     useIRSA: true
-    
+
     # Uncomment and set if you have a specific IAM role ARN
     # The service account will be annotated with this role
     # iamRoleArn: "arn:aws:iam::123456789012:role/falco-eks-audit-role"
@@ -44,7 +44,7 @@ syscallMonitoring:
 # Falco configuration
 falco:
   enabled: true
-  
+
   falco:
     priority: warning
     json_output: true
@@ -57,7 +57,7 @@ falcosidekick:
 
 loki:
   enabled: true
-  
+
   loki:
     limits_config:
       retention_period: 168h  # 7 days
@@ -67,10 +67,10 @@ grafana:
 
 analysis:
   enabled: true
-  
+
   obfuscation:
     level: standard
-  
+
   llm:
     # Using Ollama by default - change to openai or anthropic as needed
     provider: ollama

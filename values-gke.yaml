@@ -8,27 +8,27 @@ auditPlugin:
   type: k8saudit-gke
   version: "0.16"
   rulesVersion: "0.16"
-  
+
   k8sauditGke:
     enabled: true
-    
+
     # GCP Project ID where your GKE cluster is located
     projectId: "my-gcp-project"
-    
+
     # GKE Cluster ID (just the cluster name, not full resource path)
     clusterId: "my-gke-cluster"
-    
+
     # Region or Zone where the cluster is located
     # Use region for regional clusters (e.g., us-central1)
     # Use zone for zonal clusters (e.g., us-central1-a)
     location: "us-central1"
-    
+
     # Polling configuration
     pollingInterval: 5
-    
+
     # Workload Identity - Recommended approach
     useWorkloadIdentity: true
-    
+
     # Service account email for Workload Identity
     # This is the GCP service account, not the K8s service account
     # serviceAccountEmail: "falco-gke-audit@my-gcp-project.iam.gserviceaccount.com"
@@ -41,7 +41,7 @@ syscallMonitoring:
 # Falco configuration
 falco:
   enabled: true
-  
+
   falco:
     priority: warning
     json_output: true
@@ -54,7 +54,7 @@ falcosidekick:
 
 loki:
   enabled: true
-  
+
   loki:
     limits_config:
       retention_period: 168h  # 7 days
@@ -64,10 +64,10 @@ grafana:
 
 analysis:
   enabled: true
-  
+
   obfuscation:
     level: standard
-  
+
   llm:
     # Using Ollama by default - change to openai or anthropic as needed
     provider: ollama

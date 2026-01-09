@@ -8,34 +8,34 @@ auditPlugin:
   type: k8saudit-aks
   version: "0.16"
   rulesVersion: "0.16"
-  
+
   k8sauditAks:
     enabled: true
-    
+
     # Azure Subscription ID
     subscriptionId: "00000000-0000-0000-0000-000000000000"
-    
+
     # Resource Group containing the AKS cluster
     resourceGroup: "my-resource-group"
-    
+
     # AKS Cluster Name
     clusterName: "my-aks-cluster"
-    
+
     # Event Hub configuration
     # Audit logs must be configured to stream to Event Hub
     eventHubNamespace: "my-eventhub-namespace"
     eventHubName: "insights-logs-kube-audit"
     consumerGroup: "$Default"
-    
+
     # Azure Workload Identity - Recommended approach
     useWorkloadIdentity: true
-    
+
     # If not using Workload Identity, provide credentials:
     # credentials:
     #   tenantId: "00000000-0000-0000-0000-000000000000"
     #   clientId: "00000000-0000-0000-0000-000000000000"
     #   clientSecret: "your-client-secret"
-    
+
     # Or use connection string (not recommended for production):
     # connectionString: "Endpoint=sb://..."
 
@@ -47,7 +47,7 @@ syscallMonitoring:
 # Falco configuration
 falco:
   enabled: true
-  
+
   falco:
     priority: warning
     json_output: true
@@ -60,7 +60,7 @@ falcosidekick:
 
 loki:
   enabled: true
-  
+
   loki:
     limits_config:
       retention_period: 168h  # 7 days
@@ -70,10 +70,10 @@ grafana:
 
 analysis:
   enabled: true
-  
+
   obfuscation:
     level: standard
-  
+
   llm:
     # Using Ollama by default - change to openai or anthropic as needed
     provider: ollama

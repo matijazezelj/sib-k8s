@@ -13,14 +13,14 @@ data:
   falco-values.yaml: |
     # Auto-generated Falco configuration for SIB-K8s
     # Plugin type: {{ .Values.auditPlugin.type }}
-    
+
     controller:
       kind: {{ include "sib-k8s.falco.controllerKind" . }}
       {{- if eq (include "sib-k8s.falco.controllerKind" .) "deployment" }}
       deployment:
         replicas: 1
       {{- end }}
-    
+
     # Driver configuration
     driver:
       {{- if .Values.syscallMonitoring.enabled }}
@@ -38,7 +38,7 @@ data:
       {{- else }}
       enabled: false
       {{- end }}
-    
+
     # Collectors configuration
     collectors:
       {{- if .Values.syscallMonitoring.enabled }}
@@ -48,7 +48,7 @@ data:
       {{- else }}
       enabled: false
       {{- end }}
-    
+
     # Falcoctl configuration
     falcoctl:
       artifact:
@@ -62,7 +62,7 @@ data:
             refs: {{ include "sib-k8s.falcoctl.installRefs" . }}
           follow:
             refs: {{ include "sib-k8s.falcoctl.followRefs" . }}
-    
+
     {{- if eq .Values.auditPlugin.type "k8saudit" }}
     # Service for k8saudit webhook
     services:
@@ -75,12 +75,12 @@ data:
             {{- end }}
             protocol: TCP
     {{- end }}
-    
+
     # Falco configuration
     falco:
       rules_files:
         {{- toYaml .Values.falco.falco.rules_files | nindent 8 }}
-      
+
       # Load plugins
       load_plugins:
         - {{ include "sib-k8s.auditPlugin.name" . }}
@@ -88,33 +88,33 @@ data:
         {{- if .Values.syscallMonitoring.enabled }}
         - container
         {{- end }}
-      
+
       # Plugin configuration
       plugins:
         - name: {{ include "sib-k8s.auditPlugin.name" . }}
           library_path: {{ include "sib-k8s.auditPlugin.library" . }}
           init_config: {{ include "sib-k8s.auditPlugin.initConfig" . | quote }}
           open_params: {{ include "sib-k8s.auditPlugin.openParams" . | quote }}
-        
+
         - name: json
           library_path: libjson.so
           init_config: ""
-        
+
         {{- if .Values.syscallMonitoring.enabled }}
         - name: container
           library_path: /usr/share/falco/plugins/libcontainer.so
         {{- end }}
-      
+
       priority: {{ .Values.falco.falco.priority }}
       json_output: {{ .Values.falco.falco.json_output }}
       json_include_output_property: {{ .Values.falco.falco.json_include_output_property }}
       json_include_tags_property: {{ .Values.falco.falco.json_include_tags_property }}
-      
+
       # HTTP output to Falcosidekick
       http_output:
         enabled: {{ .Values.falcosidekick.enabled }}
         url: {{ include "sib-k8s.falcosidekick.url" . | quote }}
-      
+
       {{- if .Values.falco.falco.metrics.enabled }}
       metrics:
         enabled: true

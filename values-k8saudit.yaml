@@ -8,22 +8,22 @@ auditPlugin:
   type: k8saudit
   version: "0.16"
   rulesVersion: "0.16"
-  
+
   k8saudit:
     enabled: true
-    
+
     # Port for the webhook receiver
     port: 9765
-    
+
     # NodePort for external access (if using NodePort service)
     nodePort: 30007
-    
+
     # Service type: ClusterIP, NodePort, LoadBalancer
     serviceType: NodePort
-    
+
     # Maximum event size in bytes
     maxEventBytes: 1048576
-    
+
     # SSL certificate path (optional, for HTTPS webhook)
     # sslCertificate: "/etc/falco/certs/server.pem"
 
@@ -35,7 +35,7 @@ syscallMonitoring:
 # Falco configuration
 falco:
   enabled: true
-  
+
   falco:
     priority: warning
     json_output: true
@@ -48,7 +48,7 @@ falcosidekick:
 
 loki:
   enabled: true
-  
+
   loki:
     limits_config:
       retention_period: 168h  # 7 days
@@ -58,10 +58,10 @@ grafana:
 
 analysis:
   enabled: true
-  
+
   obfuscation:
     level: standard
-  
+
   llm:
     # Using Ollama by default - change to openai or anthropic as needed
     provider: ollama
