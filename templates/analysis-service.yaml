@@ -1,0 +1,20 @@
+{{/*
+Analysis Service
+*/}}
+{{- if .Values.analysis.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sib-k8s.analysis.fullname" . }}
+  labels:
+    {{- include "sib-k8s.analysis.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.analysis.service.type }}
+  ports:
+    - port: {{ .Values.analysis.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "sib-k8s.analysis.selectorLabels" . | nindent 4 }}
+{{- end }}

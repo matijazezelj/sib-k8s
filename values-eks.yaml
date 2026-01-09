@@ -1,0 +1,117 @@
+# SIB-K8s Values for AWS EKS
+# ==========================
+# This file configures SIB-K8s to use the k8saudit-eks plugin
+# to collect Kubernetes audit logs from AWS CloudWatch
+
+auditPlugin:
+  # Use EKS-specific plugin
+  type: k8saudit-eks
+  version: "0.16"
+  rulesVersion: "0.16"
+  
+  k8sauditEks:
+    enabled: true
+    
+    # AWS Region where your EKS cluster is located
+    region: us-east-1
+    
+    # CloudWatch Log Group - usually /aws/eks/<cluster-name>/cluster
+    # Replace <cluster-name> with your actual EKS cluster name
+    logGroup: "/aws/eks/my-cluster/cluster"
+    
+    # Log Stream pattern - usually kube-apiserver-audit-*
+    logStream: "kube-apiserver-audit-*"
+    
+    # Polling configuration
+    shift: 10
+    pollingInterval: 5
+    
+    # Maximum event size (default is fine for most use cases)
+    maxEventSize: 262144
+    
+    # IAM Role for Service Accounts (IRSA) - Recommended approach
+    useIRSA: true
+    
+    # Uncomment and set if you have a specific IAM role ARN
+    # The service account will be annotated with this role
+    # iamRoleArn: "arn:aws:iam::123456789012:role/falco-eks-audit-role"
+
+# Disable syscall monitoring for audit-only deployment
+# Set to true if you want both syscall and audit monitoring
+syscallMonitoring:
+  enabled: false
+
+# Falco configuration
+falco:
+  enabled: true
+  
+  falco:
+    priority: warning
+    json_output: true
+
+# Enable all supporting services
+falcosidekick:
+  enabled: true
+  webui:
+    enabled: true
+
+loki:
+  enabled: true
+  
+  loki:
+    limits_config:
+      retention_period: 168h  # 7 days
+
+grafana:
+  enabled: true
+
+analysis:
+  enabled: true
+  
+  obfuscation:
+    level: standard
+  
+  llm:
+    # Using Ollama by default - change to openai or anthropic as needed
+    provider: ollama
+    ollama:
+      url: http://ollama:11434
+      model: llama3.1:8b
+
+# =============================================================================
+# SETUP INSTRUCTIONS FOR AWS EKS
+# =============================================================================
+#
+# 1. Enable audit logging on your EKS cluster:
+#    aws eks update-cluster-config \
+#      --name my-cluster \
+#      --logging '{"clusterLogging":[{"types":["audit"],"enabled":true}]}'
+#
+# 2. Create an IAM policy for CloudWatch Logs access:
+#    {
+#      "Version": "2012-10-17",
+#      "Statement": [
+#        {
+#          "Effect": "Allow",
+#          "Action": [
+#            "logs:GetLogEvents",
+#            "logs:FilterLogEvents",
+#            "logs:DescribeLogStreams"
+#          ],
+#          "Resource": "arn:aws:logs:*:*:log-group:/aws/eks/*/cluster:*"
+#        }
+#      ]
+#    }
+#
+# 3. Create an IAM role for IRSA:
+#    eksctl create iamserviceaccount \
+#      --name falco \
+#      --namespace sib-k8s \
+#      --cluster my-cluster \
+#      --attach-policy-arn arn:aws:iam::123456789012:policy/FalcoEKSAuditPolicy \
+#      --approve
+#
+# 4. Install the chart:
+#    helm install sib-k8s . -f values-eks.yaml -n sib-k8s --create-namespace
+#
+# =============================================================================

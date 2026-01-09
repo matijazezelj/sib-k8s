@@ -1,0 +1,74 @@
+# SIB-K8s: SIEM in a Box for Kubernetes
+# Umbrella Helm Chart for Kubernetes Security Monitoring
+apiVersion: v2
+name: sib-k8s
+description: |
+  SIB-K8s is a comprehensive Kubernetes security monitoring solution that combines:
+  - Falco for runtime security detection with support for various K8s audit plugins
+  - Falcosidekick for alert routing and fan-out
+  - Loki for log aggregation and storage
+  - AI-powered alert analysis with privacy-preserving obfuscation
+  - Grafana dashboards for visualization
+  
+  Supports multiple Kubernetes environments:
+  - Generic Kubernetes (k8saudit)
+  - AWS EKS (k8saudit-eks)
+  - Google GKE (k8saudit-gke)  
+  - Azure AKS (k8saudit-aks)
+
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - security
+  - monitoring
+  - falco
+  - kubernetes
+  - siem
+  - loki
+  - ai
+  - eks
+  - gke
+  - aks
+
+home: https://github.com/matijazezelj/sib-k8s
+sources:
+  - https://github.com/matijazezelj/sib
+  - https://github.com/falcosecurity/falco
+  - https://github.com/falcosecurity/falcosidekick
+  - https://github.com/grafana/loki
+
+maintainers:
+  - name: Matija Zezelj
+    email: matija@zezelj.org
+
+dependencies:
+  # Falco - Runtime Security
+  - name: falco
+    version: "4.20.0"
+    repository: "https://falcosecurity.github.io/charts"
+    condition: falco.enabled
+  
+  # Falcosidekick - Alert Routing
+  - name: falcosidekick
+    version: "0.9.5"
+    repository: "https://falcosecurity.github.io/charts"
+    condition: falcosidekick.enabled
+  
+  # Loki - Log Aggregation
+  - name: loki
+    version: "6.24.0"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: loki.enabled
+  
+  # Grafana - Visualization
+  - name: grafana
+    version: "8.8.2"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: grafana.enabled
+
+annotations:
+  artifacthub.io/changes: |
+    - Initial release with multi-cloud K8s audit support
+  artifacthub.io/license: Apache-2.0

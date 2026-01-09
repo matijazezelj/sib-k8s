@@ -1,0 +1,252 @@
+
+================================================================================
+                          SIB-K8s Deployment Notes
+================================================================================
+
+Thank you for installing {{ .Chart.Name }}!
+
+Chart Version: {{ .Chart.Version }}
+App Version: {{ .Chart.AppVersion }}
+
+================================================================================
+                        CONFIGURATION SUMMARY
+================================================================================
+
+K8s Audit Plugin Type: {{ .Values.auditPlugin.type }}
+Syscall Monitoring: {{ if .Values.syscallMonitoring.enabled }}Enabled ({{ .Values.syscallMonitoring.driverKind }}){{ else }}Disabled{{ end }}
+
+Components Deployed:
+{{- if .Values.falco.enabled }}
+  ✓ Falco ({{ include "sib-k8s.falco.controllerKind" . }})
+{{- end }}
+{{- if .Values.falcosidekick.enabled }}
+  ✓ Falcosidekick
+{{- if .Values.falcosidekick.webui.enabled }}
+  ✓ Falcosidekick UI
+{{- end }}
+{{- end }}
+{{- if .Values.loki.enabled }}
+  ✓ Loki (Log Aggregation)
+{{- end }}
+{{- if .Values.grafana.enabled }}
+  ✓ Grafana (Visualization)
+{{- end }}
+{{- if .Values.analysis.enabled }}
+  ✓ Analysis Service (AI-powered)
+{{- end }}
+
+================================================================================
+                        ACCESSING SERVICES
+================================================================================
+
+{{- if .Values.grafana.enabled }}
+
+GRAFANA:
+  Get the admin password:
+    kubectl get secret --namespace {{ .Release.Namespace }} {{ .Release.Name }}-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+  Port forward to access:
+    kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ .Release.Name }}-grafana 3000:80
+
+  Access at: http://localhost:3000
+{{- end }}
+
+{{- if and .Values.falcosidekick.enabled .Values.falcosidekick.webui.enabled }}
+
+FALCOSIDEKICK UI:
+  Port forward to access:
+    kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ .Release.Name }}-falcosidekick-ui 2802:2802
+
+  Access at: http://localhost:2802
+{{- end }}
+
+{{- if .Values.analysis.enabled }}
+
+ANALYSIS SERVICE:
+  Port forward to access:
+    kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "sib-k8s.analysis.fullname" . }} {{ .Values.analysis.service.port }}:{{ .Values.analysis.service.port }}
+
+  Access at: http://localhost:{{ .Values.analysis.service.port }}
+{{- end }}
+
+{{- if .Values.loki.enabled }}
+
+LOKI:
+  Port forward to access:
+    kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ .Release.Name }}-loki 3100:3100
+
+  Push logs to: http://localhost:3100/loki/api/v1/push
+  Query logs at: http://localhost:3100/loki/api/v1/query
+{{- end }}
+
+================================================================================
+                    K8S AUDIT PLUGIN CONFIGURATION
+================================================================================
+
+{{- if eq .Values.auditPlugin.type "k8saudit" }}
+
+GENERIC K8S AUDIT (Webhook):
+  The webhook receiver is listening on port {{ .Values.auditPlugin.k8saudit.port }}
+  {{- if eq .Values.auditPlugin.k8saudit.serviceType "NodePort" }}
+  NodePort: {{ .Values.auditPlugin.k8saudit.nodePort }}
+  {{- end }}
+
+  To configure your Kubernetes API server to send audit logs:
+
+  1. Create an audit policy file (audit-policy.yaml):
+     apiVersion: audit.k8s.io/v1
+     kind: Policy
+     rules:
+       - level: RequestResponse
+         resources:
+           - group: ""
+             resources: ["pods", "secrets", "configmaps"]
+       - level: Metadata
+         omitStages:
+           - RequestReceived
+
+  2. Configure kube-apiserver with:
+     --audit-policy-file=/etc/kubernetes/audit-policy.yaml
+     --audit-webhook-config-file=/etc/kubernetes/audit-webhook.yaml
+     --audit-webhook-batch-max-wait=5s
+
+  3. Create audit-webhook.yaml pointing to Falco:
+     apiVersion: v1
+     kind: Config
+     clusters:
+       - name: falco
+         cluster:
+           server: http://<falco-service>:{{ .Values.auditPlugin.k8saudit.port }}/k8s-audit
+     contexts:
+       - name: default
+         context:
+           cluster: falco
+     current-context: default
+
+{{- else if eq .Values.auditPlugin.type "k8saudit-eks" }}
+
+AWS EKS AUDIT:
+  Region: {{ .Values.auditPlugin.k8sauditEks.region }}
+  Log Group: {{ .Values.auditPlugin.k8sauditEks.logGroup }}
+  Log Stream: {{ .Values.auditPlugin.k8sauditEks.logStream }}
+
+  {{- if .Values.auditPlugin.k8sauditEks.useIRSA }}
+  Using IAM Roles for Service Accounts (IRSA)
+  {{- if .Values.auditPlugin.k8sauditEks.iamRoleArn }}
+  IAM Role ARN: {{ .Values.auditPlugin.k8sauditEks.iamRoleArn }}
+  {{- else }}
+  ⚠️  Remember to annotate the service account with the IAM role ARN:
+    kubectl annotate serviceaccount -n {{ .Release.Namespace }} {{ .Release.Name }}-falco \
+      eks.amazonaws.com/role-arn=arn:aws:iam::ACCOUNT_ID:role/ROLE_NAME
+  {{- end }}
+  {{- end }}
+
+  Required IAM permissions:
+    - logs:GetLogEvents
+    - logs:FilterLogEvents
+    - logs:DescribeLogStreams
+
+{{- else if eq .Values.auditPlugin.type "k8saudit-gke" }}
+
+GOOGLE GKE AUDIT:
+  Project ID: {{ .Values.auditPlugin.k8sauditGke.projectId }}
+  Cluster ID: {{ .Values.auditPlugin.k8sauditGke.clusterId }}
+  Location: {{ .Values.auditPlugin.k8sauditGke.location }}
+
+  {{- if .Values.auditPlugin.k8sauditGke.useWorkloadIdentity }}
+  Using Workload Identity
+  {{- if .Values.auditPlugin.k8sauditGke.serviceAccountEmail }}
+  Service Account: {{ .Values.auditPlugin.k8sauditGke.serviceAccountEmail }}
+  {{- else }}
+  ⚠️  Remember to configure Workload Identity:
+    gcloud iam service-accounts add-iam-policy-binding SA_EMAIL \
+      --role roles/iam.workloadIdentityUser \
+      --member "serviceAccount:PROJECT_ID.svc.id.goog[{{ .Release.Namespace }}/{{ .Release.Name }}-falco]"
+  {{- end }}
+  {{- end }}
+
+  Required IAM roles:
+    - roles/logging.viewer
+    - roles/logging.privateLogViewer (for private logs)
+
+{{- else if eq .Values.auditPlugin.type "k8saudit-aks" }}
+
+AZURE AKS AUDIT:
+  Subscription ID: {{ .Values.auditPlugin.k8sauditAks.subscriptionId }}
+  Resource Group: {{ .Values.auditPlugin.k8sauditAks.resourceGroup }}
+  Cluster Name: {{ .Values.auditPlugin.k8sauditAks.clusterName }}
+  Event Hub: {{ .Values.auditPlugin.k8sauditAks.eventHubNamespace }}/{{ .Values.auditPlugin.k8sauditAks.eventHubName }}
+
+  {{- if .Values.auditPlugin.k8sauditAks.useWorkloadIdentity }}
+  Using Azure Workload Identity
+
+  ⚠️  Remember to configure Workload Identity:
+    1. Create a managed identity
+    2. Create federated credential for the service account
+    3. Grant 'Azure Event Hubs Data Receiver' role
+  {{- end }}
+
+{{- end }}
+
+================================================================================
+                        ANALYSIS SERVICE
+================================================================================
+
+{{- if .Values.analysis.enabled }}
+
+LLM Provider: {{ .Values.analysis.llm.provider }}
+{{- if eq .Values.analysis.llm.provider "ollama" }}
+Ollama URL: {{ .Values.analysis.llm.ollama.url }}
+Model: {{ .Values.analysis.llm.ollama.model }}
+{{- else if eq .Values.analysis.llm.provider "openai" }}
+Model: {{ .Values.analysis.llm.openai.model }}
+{{- if .Values.analysis.llm.openai.existingSecret }}
+API Key from Secret: {{ .Values.analysis.llm.openai.existingSecret }}
+{{- end }}
+{{- else if eq .Values.analysis.llm.provider "anthropic" }}
+Model: {{ .Values.analysis.llm.anthropic.model }}
+{{- if .Values.analysis.llm.anthropic.existingSecret }}
+API Key from Secret: {{ .Values.analysis.llm.anthropic.existingSecret }}
+{{- end }}
+{{- end }}
+
+Obfuscation Level: {{ .Values.analysis.obfuscation.level }}
+
+The analysis service provides:
+  - Privacy-preserving alert analysis (sensitive data is obfuscated)
+  - MITRE ATT&CK mapping
+  - Risk assessment and severity scoring
+  - Investigation recommendations
+  - False positive assessment
+
+{{- else }}
+
+Analysis service is disabled. To enable AI-powered analysis:
+  helm upgrade {{ .Release.Name }} sib-k8s/sib-k8s --set analysis.enabled=true
+
+{{- end }}
+
+================================================================================
+                        USEFUL COMMANDS
+================================================================================
+
+# View Falco logs
+kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name=falco -f
+
+# View alerts in Loki (via Grafana or LogCLI)
+logcli query '{job="falco"}' --since=1h
+
+# Check analysis service health
+curl http://localhost:{{ .Values.analysis.service.port }}/healthz
+
+# Trigger a test alert (run in a pod)
+cat /etc/shadow
+
+================================================================================
+
+For more information, visit:
+  - https://github.com/matijazezelj/sib-k8s
+  - https://falco.org/docs/
+  - https://grafana.com/docs/loki/latest/
+
+================================================================================

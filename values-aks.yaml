@@ -1,0 +1,137 @@
+# SIB-K8s Values for Azure AKS
+# ============================
+# This file configures SIB-K8s to use the k8saudit-aks plugin
+# to collect Kubernetes audit logs from Azure Event Hub
+
+auditPlugin:
+  # Use AKS-specific plugin
+  type: k8saudit-aks
+  version: "0.16"
+  rulesVersion: "0.16"
+  
+  k8sauditAks:
+    enabled: true
+    
+    # Azure Subscription ID
+    subscriptionId: "00000000-0000-0000-0000-000000000000"
+    
+    # Resource Group containing the AKS cluster
+    resourceGroup: "my-resource-group"
+    
+    # AKS Cluster Name
+    clusterName: "my-aks-cluster"
+    
+    # Event Hub configuration
+    # Audit logs must be configured to stream to Event Hub
+    eventHubNamespace: "my-eventhub-namespace"
+    eventHubName: "insights-logs-kube-audit"
+    consumerGroup: "$Default"
+    
+    # Azure Workload Identity - Recommended approach
+    useWorkloadIdentity: true
+    
+    # If not using Workload Identity, provide credentials:
+    # credentials:
+    #   tenantId: "00000000-0000-0000-0000-000000000000"
+    #   clientId: "00000000-0000-0000-0000-000000000000"
+    #   clientSecret: "your-client-secret"
+    
+    # Or use connection string (not recommended for production):
+    # connectionString: "Endpoint=sb://..."
+
+# Disable syscall monitoring for audit-only deployment
+# Set to true if you want both syscall and audit monitoring
+syscallMonitoring:
+  enabled: false
+
+# Falco configuration
+falco:
+  enabled: true
+  
+  falco:
+    priority: warning
+    json_output: true
+
+# Enable all supporting services
+falcosidekick:
+  enabled: true
+  webui:
+    enabled: true
+
+loki:
+  enabled: true
+  
+  loki:
+    limits_config:
+      retention_period: 168h  # 7 days
+
+grafana:
+  enabled: true
+
+analysis:
+  enabled: true
+  
+  obfuscation:
+    level: standard
+  
+  llm:
+    # Using Ollama by default - change to openai or anthropic as needed
+    provider: ollama
+    ollama:
+      url: http://ollama:11434
+      model: llama3.1:8b
+
+# =============================================================================
+# SETUP INSTRUCTIONS FOR AZURE AKS
+# =============================================================================
+#
+# 1. Create an Event Hub namespace:
+#    az eventhubs namespace create \
+#      --name my-eventhub-namespace \
+#      --resource-group my-resource-group \
+#      --location eastus
+#
+# 2. Create an Event Hub for audit logs:
+#    az eventhubs eventhub create \
+#      --name insights-logs-kube-audit \
+#      --namespace-name my-eventhub-namespace \
+#      --resource-group my-resource-group
+#
+# 3. Configure AKS diagnostic settings to stream to Event Hub:
+#    az monitor diagnostic-settings create \
+#      --name aks-audit-to-eventhub \
+#      --resource $(az aks show -g my-resource-group -n my-aks-cluster --query id -o tsv) \
+#      --event-hub insights-logs-kube-audit \
+#      --event-hub-rule $(az eventhubs namespace authorization-rule list \
+#        --namespace-name my-eventhub-namespace \
+#        --resource-group my-resource-group \
+#        --query "[?name=='RootManageSharedAccessKey'].id" -o tsv) \
+#      --logs '[{"category":"kube-audit","enabled":true}]'
+#
+# 4. Create a managed identity and configure Workload Identity:
+#    # Create managed identity
+#    az identity create \
+#      --name falco-aks-identity \
+#      --resource-group my-resource-group
+#
+#    # Get identity client ID
+#    CLIENT_ID=$(az identity show -g my-resource-group -n falco-aks-identity --query clientId -o tsv)
+#
+#    # Assign Event Hub Data Receiver role
+#    az role assignment create \
+#      --assignee $CLIENT_ID \
+#      --role "Azure Event Hubs Data Receiver" \
+#      --scope $(az eventhubs namespace show -g my-resource-group -n my-eventhub-namespace --query id -o tsv)
+#
+#    # Create federated credential for Workload Identity
+#    az identity federated-credential create \
+#      --name falco-federated-cred \
+#      --identity-name falco-aks-identity \
+#      --resource-group my-resource-group \
+#      --issuer $(az aks show -g my-resource-group -n my-aks-cluster --query oidcIssuerProfile.issuerUrl -o tsv) \
+#      --subject system:serviceaccount:sib-k8s:sib-k8s-falco
+#
+# 5. Install the chart:
+#    helm install sib-k8s . -f values-aks.yaml -n sib-k8s --create-namespace
+#
+# =============================================================================

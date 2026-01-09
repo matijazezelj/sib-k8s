@@ -1,0 +1,141 @@
+# SIB-K8s Values for Generic Kubernetes (Webhook-based)
+# =====================================================
+# This file configures SIB-K8s to use the k8saudit plugin
+# with a webhook receiver for any Kubernetes cluster
+
+auditPlugin:
+  # Use generic k8saudit plugin (webhook-based)
+  type: k8saudit
+  version: "0.16"
+  rulesVersion: "0.16"
+  
+  k8saudit:
+    enabled: true
+    
+    # Port for the webhook receiver
+    port: 9765
+    
+    # NodePort for external access (if using NodePort service)
+    nodePort: 30007
+    
+    # Service type: ClusterIP, NodePort, LoadBalancer
+    serviceType: NodePort
+    
+    # Maximum event size in bytes
+    maxEventBytes: 1048576
+    
+    # SSL certificate path (optional, for HTTPS webhook)
+    # sslCertificate: "/etc/falco/certs/server.pem"
+
+# Disable syscall monitoring for audit-only deployment
+# Set to true if you want both syscall and audit monitoring
+syscallMonitoring:
+  enabled: false
+
+# Falco configuration
+falco:
+  enabled: true
+  
+  falco:
+    priority: warning
+    json_output: true
+
+# Enable all supporting services
+falcosidekick:
+  enabled: true
+  webui:
+    enabled: true
+
+loki:
+  enabled: true
+  
+  loki:
+    limits_config:
+      retention_period: 168h  # 7 days
+
+grafana:
+  enabled: true
+
+analysis:
+  enabled: true
+  
+  obfuscation:
+    level: standard
+  
+  llm:
+    # Using Ollama by default - change to openai or anthropic as needed
+    provider: ollama
+    ollama:
+      url: http://ollama:11434
+      model: llama3.1:8b
+
+# =============================================================================
+# SETUP INSTRUCTIONS FOR GENERIC KUBERNETES
+# =============================================================================
+#
+# 1. Create an audit policy file on your control plane nodes:
+#
+#    /etc/kubernetes/audit-policy.yaml:
+#    ---
+#    apiVersion: audit.k8s.io/v1
+#    kind: Policy
+#    rules:
+#      # Log pod changes at RequestResponse level
+#      - level: RequestResponse
+#        resources:
+#          - group: ""
+#            resources: ["pods"]
+#      # Log secret/configmap access at Metadata level
+#      - level: Metadata
+#        resources:
+#          - group: ""
+#            resources: ["secrets", "configmaps"]
+#      # Log RBAC changes
+#      - level: RequestResponse
+#        resources:
+#          - group: "rbac.authorization.k8s.io"
+#            resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+#      # Default to Metadata level for everything else
+#      - level: Metadata
+#        omitStages:
+#          - RequestReceived
+#
+# 2. Create webhook configuration file:
+#
+#    /etc/kubernetes/audit-webhook.yaml:
+#    ---
+#    apiVersion: v1
+#    kind: Config
+#    clusters:
+#      - name: falco
+#        cluster:
+#          server: http://<FALCO_SERVICE_IP>:9765/k8s-audit
+#          # For HTTPS:
+#          # server: https://<FALCO_SERVICE_IP>:9765/k8s-audit
+#          # certificate-authority: /etc/kubernetes/pki/falco-ca.crt
+#    contexts:
+#      - name: default
+#        context:
+#          cluster: falco
+#    current-context: default
+#
+# 3. Add the following flags to kube-apiserver:
+#    --audit-policy-file=/etc/kubernetes/audit-policy.yaml
+#    --audit-webhook-config-file=/etc/kubernetes/audit-webhook.yaml
+#    --audit-webhook-batch-max-wait=5s
+#
+# 4. For kubeadm clusters, update /etc/kubernetes/manifests/kube-apiserver.yaml
+#    and add the audit flags to the command section.
+#
+# 5. For k3s, add to /etc/rancher/k3s/config.yaml:
+#    kube-apiserver-arg:
+#      - "audit-policy-file=/etc/kubernetes/audit-policy.yaml"
+#      - "audit-webhook-config-file=/etc/kubernetes/audit-webhook.yaml"
+#
+# 6. Install the chart:
+#    helm install sib-k8s . -f values-k8saudit.yaml -n sib-k8s --create-namespace
+#
+# 7. Get the Falco service IP for the webhook configuration:
+#    kubectl get svc -n sib-k8s -l app.kubernetes.io/name=falco
+#
+# =============================================================================

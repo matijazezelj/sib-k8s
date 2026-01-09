@@ -1,0 +1,113 @@
+# SIB-K8s Values for Google GKE
+# =============================
+# This file configures SIB-K8s to use the k8saudit-gke plugin
+# to collect Kubernetes audit logs from Google Cloud Logging
+
+auditPlugin:
+  # Use GKE-specific plugin
+  type: k8saudit-gke
+  version: "0.16"
+  rulesVersion: "0.16"
+  
+  k8sauditGke:
+    enabled: true
+    
+    # GCP Project ID where your GKE cluster is located
+    projectId: "my-gcp-project"
+    
+    # GKE Cluster ID (just the cluster name, not full resource path)
+    clusterId: "my-gke-cluster"
+    
+    # Region or Zone where the cluster is located
+    # Use region for regional clusters (e.g., us-central1)
+    # Use zone for zonal clusters (e.g., us-central1-a)
+    location: "us-central1"
+    
+    # Polling configuration
+    pollingInterval: 5
+    
+    # Workload Identity - Recommended approach
+    useWorkloadIdentity: true
+    
+    # Service account email for Workload Identity
+    # This is the GCP service account, not the K8s service account
+    # serviceAccountEmail: "falco-gke-audit@my-gcp-project.iam.gserviceaccount.com"
+
+# Disable syscall monitoring for audit-only deployment
+# Set to true if you want both syscall and audit monitoring
+syscallMonitoring:
+  enabled: false
+
+# Falco configuration
+falco:
+  enabled: true
+  
+  falco:
+    priority: warning
+    json_output: true
+
+# Enable all supporting services
+falcosidekick:
+  enabled: true
+  webui:
+    enabled: true
+
+loki:
+  enabled: true
+  
+  loki:
+    limits_config:
+      retention_period: 168h  # 7 days
+
+grafana:
+  enabled: true
+
+analysis:
+  enabled: true
+  
+  obfuscation:
+    level: standard
+  
+  llm:
+    # Using Ollama by default - change to openai or anthropic as needed
+    provider: ollama
+    ollama:
+      url: http://ollama:11434
+      model: llama3.1:8b
+
+# =============================================================================
+# SETUP INSTRUCTIONS FOR GOOGLE GKE
+# =============================================================================
+#
+# 1. Enable Cloud Audit Logs for GKE (enabled by default for most operations):
+#    - Admin Activity logs are always enabled
+#    - Data Access logs may need to be enabled in IAM & Admin > Audit Logs
+#
+# 2. Create a GCP service account:
+#    gcloud iam service-accounts create falco-gke-audit \
+#      --display-name="Falco GKE Audit Logs Reader"
+#
+# 3. Grant necessary permissions:
+#    gcloud projects add-iam-policy-binding my-gcp-project \
+#      --member="serviceAccount:falco-gke-audit@my-gcp-project.iam.gserviceaccount.com" \
+#      --role="roles/logging.viewer"
+#
+#    # For private logs, also add:
+#    gcloud projects add-iam-policy-binding my-gcp-project \
+#      --member="serviceAccount:falco-gke-audit@my-gcp-project.iam.gserviceaccount.com" \
+#      --role="roles/logging.privateLogViewer"
+#
+# 4. Configure Workload Identity:
+#    gcloud iam service-accounts add-iam-policy-binding \
+#      falco-gke-audit@my-gcp-project.iam.gserviceaccount.com \
+#      --role roles/iam.workloadIdentityUser \
+#      --member "serviceAccount:my-gcp-project.svc.id.goog[sib-k8s/sib-k8s-falco]"
+#
+# 5. Annotate the Kubernetes service account (done automatically if using IRSA):
+#    kubectl annotate serviceaccount -n sib-k8s sib-k8s-falco \
+#      iam.gke.io/gcp-service-account=falco-gke-audit@my-gcp-project.iam.gserviceaccount.com
+#
+# 6. Install the chart:
+#    helm install sib-k8s . -f values-gke.yaml -n sib-k8s --create-namespace
+#
+# =============================================================================

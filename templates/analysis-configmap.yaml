@@ -1,0 +1,97 @@
+{{/*
+Analysis Service ConfigMap
+*/}}
+{{- if .Values.analysis.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sib-k8s.analysis.fullname" . }}-config
+  labels:
+    {{- include "sib-k8s.analysis.labels" . | nindent 4 }}
+data:
+  # Server configuration
+  PORT: "{{ .Values.analysis.service.port }}"
+  
+  # Loki configuration
+  LOKI_URL: {{ include "sib-k8s.loki.url" . | quote }}
+  
+  # Obfuscation configuration
+  OBFUSCATION_LEVEL: {{ .Values.analysis.obfuscation.level | quote }}
+  
+  # LLM Provider configuration
+  LLM_PROVIDER: {{ .Values.analysis.llm.provider | quote }}
+  
+  # Ollama configuration
+  {{- if eq .Values.analysis.llm.provider "ollama" }}
+  OLLAMA_HOST: {{ .Values.analysis.llm.ollama.url | quote }}
+  OLLAMA_MODEL: {{ .Values.analysis.llm.ollama.model | quote }}
+  OLLAMA_TIMEOUT: {{ .Values.analysis.llm.ollama.timeout | quote }}
+  {{- end }}
+  
+  # OpenAI configuration
+  {{- if eq .Values.analysis.llm.provider "openai" }}
+  OPENAI_MODEL: {{ .Values.analysis.llm.openai.model | quote }}
+  OPENAI_MAX_TOKENS: {{ .Values.analysis.llm.openai.maxTokens | quote }}
+  {{- if and .Values.analysis.llm.openai.apiKey (not .Values.analysis.llm.openai.existingSecret) }}
+  OPENAI_API_KEY: {{ .Values.analysis.llm.openai.apiKey | quote }}
+  {{- end }}
+  {{- end }}
+  
+  # Anthropic configuration
+  {{- if eq .Values.analysis.llm.provider "anthropic" }}
+  ANTHROPIC_MODEL: {{ .Values.analysis.llm.anthropic.model | quote }}
+  ANTHROPIC_MAX_TOKENS: {{ .Values.analysis.llm.anthropic.maxTokens | quote }}
+  {{- if and .Values.analysis.llm.anthropic.apiKey (not .Values.analysis.llm.anthropic.existingSecret) }}
+  ANTHROPIC_API_KEY: {{ .Values.analysis.llm.anthropic.apiKey | quote }}
+  {{- end }}
+  {{- end }}
+  
+  # Cache configuration
+  CACHE_ENABLED: {{ .Values.analysis.cache.enabled | quote }}
+  CACHE_TTL: {{ .Values.analysis.cache.ttl | quote }}
+  CACHE_MAX_SIZE: {{ .Values.analysis.cache.maxSize | quote }}
+  
+  # Grafana integration
+  {{- if .Values.analysis.grafana.dataLink }}
+  GRAFANA_DATA_LINK: "true"
+  {{- if .Values.analysis.grafana.baseUrl }}
+  GRAFANA_BASE_URL: {{ .Values.analysis.grafana.baseUrl | quote }}
+  {{- end }}
+  {{- end }}
+  
+  # Analysis configuration YAML
+  config.yaml: |
+    loki:
+      url: {{ include "sib-k8s.loki.url" . }}
+    
+    analysis:
+      enabled: true
+      obfuscation_level: {{ .Values.analysis.obfuscation.level }}
+      provider: {{ .Values.analysis.llm.provider }}
+      
+      {{- if eq .Values.analysis.llm.provider "ollama" }}
+      ollama:
+        url: {{ .Values.analysis.llm.ollama.url }}
+        model: {{ .Values.analysis.llm.ollama.model }}
+        timeout: {{ .Values.analysis.llm.ollama.timeout }}
+      {{- end }}
+      
+      {{- if eq .Values.analysis.llm.provider "openai" }}
+      openai:
+        model: {{ .Values.analysis.llm.openai.model }}
+        max_tokens: {{ .Values.analysis.llm.openai.maxTokens }}
+        api_key: "${OPENAI_API_KEY}"
+      {{- end }}
+      
+      {{- if eq .Values.analysis.llm.provider "anthropic" }}
+      anthropic:
+        model: {{ .Values.analysis.llm.anthropic.model }}
+        max_tokens: {{ .Values.analysis.llm.anthropic.maxTokens }}
+        api_key: "${ANTHROPIC_API_KEY}"
+      {{- end }}
+    
+    cache:
+      enabled: {{ .Values.analysis.cache.enabled }}
+      ttl: {{ .Values.analysis.cache.ttl }}
+      max_size: {{ .Values.analysis.cache.maxSize }}
+{{- end }}

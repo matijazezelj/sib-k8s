@@ -1,0 +1,82 @@
+{{/*
+Analysis Service Deployment
+*/}}
+{{- if .Values.analysis.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sib-k8s.analysis.fullname" . }}
+  labels:
+    {{- include "sib-k8s.analysis.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.analysis.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "sib-k8s.analysis.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "sib-k8s.analysis.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/analysis-configmap.yaml") . | sha256sum }}
+    spec:
+      {{- include "sib-k8s.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "sib-k8s.analysis.fullname" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: analysis
+          image: "{{ .Values.analysis.image.repository }}:{{ .Values.analysis.image.tag }}"
+          imagePullPolicy: {{ .Values.analysis.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.analysis.service.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "sib-k8s.analysis.fullname" . }}-config
+          {{- if or .Values.analysis.llm.openai.existingSecret .Values.analysis.llm.anthropic.existingSecret }}
+          env:
+            {{- if .Values.analysis.llm.openai.existingSecret }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.analysis.llm.openai.existingSecret }}
+                  key: {{ .Values.analysis.llm.openai.secretKey }}
+            {{- end }}
+            {{- if .Values.analysis.llm.anthropic.existingSecret }}
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.analysis.llm.anthropic.existingSecret }}
+                  key: {{ .Values.analysis.llm.anthropic.secretKey }}
+            {{- end }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.analysis.resources | nindent 12 }}
+          volumeMounts:
+            - name: cache
+              mountPath: /app/cache
+            - name: config
+              mountPath: /app/config
+      volumes:
+        - name: cache
+          emptyDir: {}
+        - name: config
+          configMap:
+            name: {{ include "sib-k8s.analysis.fullname" . }}-config
+{{- end }}

@@ -1,0 +1,14 @@
+{{/*
+Custom Falco Rules ConfigMap
+*/}}
+{{- if .Values.customRules.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sib-k8s.fullname" . }}-custom-rules
+  labels:
+    {{- include "sib-k8s.labels" . | nindent 4 }}
+data:
+  custom_rules.yaml: |
+{{ .Values.customRules.rules | indent 4 }}
+{{- end }}
