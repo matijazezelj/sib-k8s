@@ -10,6 +10,7 @@ from cachetools import TTLCache
 
 from .config import settings
 from .llm import get_provider
+from .loki import push_to_loki
 from .mitre import get_mitre_techniques, format_mitre_info
 from .obfuscator import obfuscator
 
@@ -161,6 +162,9 @@ async def analyze_alert(alert: Dict[str, Any]) -> Dict[str, Any]:
     # Store in cache
     if settings.cache_enabled:
         cache[cache_key] = result
+    
+    # Push to Loki for Grafana visibility
+    await push_to_loki(result)
     
     logger.info(
         "Alert analyzed",

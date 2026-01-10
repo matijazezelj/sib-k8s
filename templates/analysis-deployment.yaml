@@ -37,23 +37,57 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "sib-k8s.analysis.fullname" . }}-config
-          {{- if or .Values.analysis.llm.openai.existingSecret .Values.analysis.llm.anthropic.existingSecret }}
           env:
-            {{- if .Values.analysis.llm.openai.existingSecret }}
-            - name: OPENAI_API_KEY
+            - name: ANALYZER_LOKI_URL
+              value: {{ include "sib-k8s.loki.url" . | quote }}
+            - name: ANALYZER_LLM_PROVIDER
+              value: {{ .Values.analysis.llm.provider | quote }}
+            {{- if eq .Values.analysis.llm.provider "ollama" }}
+            - name: ANALYZER_OLLAMA_URL
+              value: {{ .Values.analysis.llm.ollama.url | quote }}
+            - name: ANALYZER_LLM_MODEL
+              value: {{ .Values.analysis.llm.ollama.model | quote }}
+            {{- end }}
+            {{- if eq .Values.analysis.llm.provider "openai" }}
+            - name: ANALYZER_LLM_MODEL
+              value: {{ .Values.analysis.llm.openai.model | quote }}
+            - name: ANALYZER_LLM_MAX_TOKENS
+              value: {{ .Values.analysis.llm.openai.maxTokens | quote }}
+            {{- end }}
+            {{- if eq .Values.analysis.llm.provider "anthropic" }}
+            - name: ANALYZER_LLM_MODEL
+              value: {{ .Values.analysis.llm.anthropic.model | quote }}
+            - name: ANALYZER_LLM_MAX_TOKENS
+              value: {{ .Values.analysis.llm.anthropic.maxTokens | quote }}
+            {{- end }}
+            {{- /* OpenAI API Key - from values or existing secret */}}
+            {{- if .Values.analysis.llm.openai.apiKey }}
+            - name: ANALYZER_OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sib-k8s.analysis.fullname" . }}-api-keys
+                  key: openai-api-key
+            {{- else if .Values.analysis.llm.openai.existingSecret }}
+            - name: ANALYZER_OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.analysis.llm.openai.existingSecret }}
-                  key: {{ .Values.analysis.llm.openai.secretKey }}
+                  key: {{ .Values.analysis.llm.openai.secretKey | default "api-key" }}
             {{- end }}
-            {{- if .Values.analysis.llm.anthropic.existingSecret }}
-            - name: ANTHROPIC_API_KEY
+            {{- /* Anthropic API Key - from values or existing secret */}}
+            {{- if .Values.analysis.llm.anthropic.apiKey }}
+            - name: ANALYZER_ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sib-k8s.analysis.fullname" . }}-api-keys
+                  key: anthropic-api-key
+            {{- else if .Values.analysis.llm.anthropic.existingSecret }}
+            - name: ANALYZER_ANTHROPIC_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.analysis.llm.anthropic.existingSecret }}
-                  key: {{ .Values.analysis.llm.anthropic.secretKey }}
+                  key: {{ .Values.analysis.llm.anthropic.secretKey | default "api-key" }}
             {{- end }}
-          {{- end }}
           livenessProbe:
             httpGet:
               path: /health

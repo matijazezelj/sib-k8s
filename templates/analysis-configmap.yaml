@@ -32,18 +32,12 @@ data:
   {{- if eq .Values.analysis.llm.provider "openai" }}
   OPENAI_MODEL: {{ .Values.analysis.llm.openai.model | quote }}
   OPENAI_MAX_TOKENS: {{ .Values.analysis.llm.openai.maxTokens | quote }}
-  {{- if and .Values.analysis.llm.openai.apiKey (not .Values.analysis.llm.openai.existingSecret) }}
-  OPENAI_API_KEY: {{ .Values.analysis.llm.openai.apiKey | quote }}
-  {{- end }}
   {{- end }}
 
   # Anthropic configuration
   {{- if eq .Values.analysis.llm.provider "anthropic" }}
   ANTHROPIC_MODEL: {{ .Values.analysis.llm.anthropic.model | quote }}
   ANTHROPIC_MAX_TOKENS: {{ .Values.analysis.llm.anthropic.maxTokens | quote }}
-  {{- if and .Values.analysis.llm.anthropic.apiKey (not .Values.analysis.llm.anthropic.existingSecret) }}
-  ANTHROPIC_API_KEY: {{ .Values.analysis.llm.anthropic.apiKey | quote }}
-  {{- end }}
   {{- end }}
 
   # Cache configuration

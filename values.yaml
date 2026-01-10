@@ -224,28 +224,44 @@ analysis:
     # -- Provider: ollama, openai, anthropic
     provider: ollama
 
-    # -- Ollama configuration
+    # -- Ollama configuration (local, no API key needed)
     ollama:
       url: http://ollama:11434
       model: llama3.1:8b
       timeout: 120
 
     # -- OpenAI configuration
+    # To use OpenAI, set provider: openai and provide API key via:
+    # Option 1: Set apiKey directly (not recommended for production)
+    # Option 2: Create secret manually and reference with existingSecret
+    # Example: kubectl create secret generic openai-secret --from-literal=api-key=sk-xxx
     openai:
-      # -- API key (use secret reference in production)
+      # -- API key (will be stored in auto-created secret)
       apiKey: ""
-      # -- API key from existing secret
+      # -- Use existing secret instead of apiKey (recommended for production)
       existingSecret: ""
+      # -- Key name in the secret
       secretKey: "api-key"
+      # -- Model to use
       model: gpt-4o-mini
+      # -- Max tokens for response
       maxTokens: 2000
 
     # -- Anthropic configuration
+    # To use Anthropic, set provider: anthropic and provide API key via:
+    # Option 1: Set apiKey directly (not recommended for production)
+    # Option 2: Create secret manually and reference with existingSecret
+    # Example: kubectl create secret generic anthropic-secret --from-literal=api-key=sk-ant-xxx
     anthropic:
+      # -- API key (will be stored in auto-created secret)
       apiKey: ""
+      # -- Use existing secret instead of apiKey (recommended for production)
       existingSecret: ""
+      # -- Key name in the secret
       secretKey: "api-key"
-      model: claude-3-haiku-20240307
+      # -- Model to use
+      model: claude-sonnet-4-20250514
+      # -- Max tokens for response
       maxTokens: 2000
 
   # -- Analysis caching
@@ -462,6 +478,28 @@ loki:
     enabled: true
     size: 10Gi
     storageClass: ""
+
+  # -- Chunks cache configuration (memcached)
+  chunksCache:
+    enabled: true
+    allocatedMemory: 2048
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2500Mi
+      limits:
+        memory: 2500Mi
+
+  # -- Results cache configuration (memcached)
+  resultsCache:
+    enabled: true
+    allocatedMemory: 1024
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1500Mi
+      limits:
+        memory: 1500Mi
 
 # =============================================================================
 # Grafana Configuration
