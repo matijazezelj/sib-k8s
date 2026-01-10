@@ -189,7 +189,7 @@ analysis:
   image:
     repository: ghcr.io/matijazezelj/sib-k8s-analyzer
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
   # -- Service configuration
   service:
