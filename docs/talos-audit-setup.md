@@ -6,7 +6,8 @@
 #
 # The k8saudit webhook is available at:
 #   - From within cluster: http://sib-k8s-k8saudit.sib-k8s.svc:9765/k8s-audit
-#   - Via NodePort: http://192.168.1.50:30007/k8s-audit
+#   - Via NodePort: http://<NODE_IP>:30007/k8s-audit
+#   - Via localhost (hostNetwork): http://127.0.0.1:9765/k8s-audit
 #
 # Option 1: Using talosctl patch (recommended)
 # --------------------------------------------
@@ -113,11 +114,11 @@ cluster:
 EOF
 
 # Apply the patch to your Talos node:
-# talosctl patch mc -n 192.168.1.50 --patch @/tmp/talos-audit-patch.yaml
+# talosctl patch mc -n <TALOS_NODE_IP> --patch @/tmp/talos-audit-patch.yaml
 
 # Option 2: Manual talosctl edit
 # ------------------------------
-# talosctl edit machineconfig -n 192.168.1.50
+# talosctl edit machineconfig -n <TALOS_NODE_IP>
 
 # Option 3: If using Talos with controlplane config
 # -------------------------------------------------
