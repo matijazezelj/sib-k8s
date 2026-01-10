@@ -1,0 +1,23 @@
+{{- if .Values.auditPlugin.k8saudit.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sib-k8s.fullname" . }}-k8saudit
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "sib-k8s.labels" . | nindent 4 }}
+    app.kubernetes.io/component: k8saudit
+spec:
+  type: {{ .Values.auditPlugin.k8saudit.serviceType | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.auditPlugin.k8saudit.port }}
+      targetPort: {{ .Values.auditPlugin.k8saudit.port }}
+      protocol: TCP
+      name: webhook
+      {{- if and (eq .Values.auditPlugin.k8saudit.serviceType "NodePort") .Values.auditPlugin.k8saudit.nodePort }}
+      nodePort: {{ .Values.auditPlugin.k8saudit.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "sib-k8s.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: k8saudit
+{{- end }}

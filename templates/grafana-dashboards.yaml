@@ -73,7 +73,7 @@ data:
                 "type": "loki",
                 "uid": "loki"
               },
-              "expr": "count_over_time({job=\"falco\"} [1h])",
+              "expr": "count_over_time({source=\"syscall\"} [1h])",
               "refId": "A"
             }
           ],
@@ -130,7 +130,7 @@ data:
                 "type": "loki",
                 "uid": "loki"
               },
-              "expr": "sum by (priority) (count_over_time({job=\"falco\"} | json | priority != \"\" [1h]))",
+              "expr": "sum by (priority) (count_over_time({source=\"syscall\"} [1h]))",
               "refId": "A"
             }
           ],
@@ -166,7 +166,7 @@ data:
                 "type": "loki",
                 "uid": "loki"
               },
-              "expr": "{job=\"falco\"} | json",
+              "expr": "{source=\"syscall\"}",
               "refId": "A"
             }
           ],
@@ -225,7 +225,7 @@ data:
                 "type": "loki",
                 "uid": "loki"
               },
-              "expr": "sum by (rule) (count_over_time({job=\"falco\"} | json | rule != \"\" [24h]))",
+              "expr": "sum by (rule) (count_over_time({source=\"syscall\"} [24h]))",
               "refId": "A"
             }
           ],
@@ -284,7 +284,7 @@ data:
                 "type": "loki",
                 "uid": "loki"
               },
-              "expr": "sum by (source) (count_over_time({job=\"falco\"} | json | source != \"\" [24h]))",
+              "expr": "sum by (source) (count_over_time({source=\"syscall\"} [24h]))",
               "refId": "A"
             }
           ],
@@ -353,7 +353,7 @@ data:
                 "type": "loki",
                 "uid": "loki"
               },
-              "expr": "{job=\"falco\", source=\"k8s_audit\"} | json",
+              "expr": "{source=\"k8s_audit\"}",
               "refId": "A"
             }
           ],
@@ -410,7 +410,7 @@ data:
                 "type": "loki",
                 "uid": "loki"
               },
-              "expr": "sum by (rule) (count_over_time({job=\"falco\", source=\"k8s_audit\"} | json [1h]))",
+              "expr": "sum by (rule) (count_over_time({source=\"k8s_audit\"} [1h]))",
               "refId": "A"
             }
           ],
@@ -467,7 +467,7 @@ data:
                 "type": "loki",
                 "uid": "loki"
               },
-              "expr": "sum by (ka_user_name) (count_over_time({job=\"falco\", source=\"k8s_audit\"} | json [1h]))",
+              "expr": "sum by (ka_user_name) (count_over_time({source=\"k8s_audit\"} [1h]))",
               "refId": "A"
             }
           ],

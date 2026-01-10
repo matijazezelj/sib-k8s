@@ -485,6 +485,7 @@ grafana:
       apiVersion: 1
       datasources:
         - name: Loki
+          uid: loki
           type: loki
           access: proxy
           url: http://{{ .Release.Name }}-loki:3100
@@ -513,7 +514,7 @@ grafana:
   # -- Grafana.ini configuration
   grafana.ini:
     server:
-      root_url: "%(protocol)s://%(domain)s:%(http_port)s/grafana"
+      root_url: "%(protocol)s://%(domain)s:%(http_port)s/"
     security:
       allow_embedding: true
     auth.anonymous:

@@ -1,0 +1,95 @@
+{{- if .Values.auditPlugin.k8saudit.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sib-k8s.fullname" . }}-k8saudit
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "sib-k8s.labels" . | nindent 4 }}
+    app.kubernetes.io/component: k8saudit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "sib-k8s.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: k8saudit
+  template:
+    metadata:
+      labels:
+        {{- include "sib-k8s.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: k8saudit
+    spec:
+      # Use hostNetwork so the API server (also on hostNetwork) can reach this service directly
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      initContainers:
+        - name: falcoctl-artifact-install
+          image: docker.io/falcosecurity/falcoctl:0.11.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - artifact
+            - install
+            - --log-format=json
+          volumeMounts:
+            - name: plugins
+              mountPath: /plugins
+            - name: rulesfiles
+              mountPath: /rulesfiles
+            - name: falcoctl-config
+              mountPath: /etc/falcoctl
+      containers:
+        - name: falco-k8saudit
+          image: docker.io/falcosecurity/falco:0.40.0-debian
+          imagePullPolicy: IfNotPresent
+          command: ["/usr/bin/falco"]
+          args:
+            - -c
+            - /etc/falco/falco.yaml
+            - -o
+            - "config_files=/etc/falco/config.d"
+          env:
+            - name: HOST_ROOT
+              value: ""
+          ports:
+            - name: webhook
+              containerPort: {{ .Values.auditPlugin.k8saudit.port }}
+              hostPort: {{ .Values.auditPlugin.k8saudit.port }}
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /etc/falco
+            - name: plugins
+              mountPath: /usr/share/falco/plugins
+            - name: rulesfiles
+              mountPath: /etc/falco/rules.d
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8765
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8765
+            initialDelaySeconds: 10
+            periodSeconds: 5
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "sib-k8s.fullname" . }}-k8saudit-config
+        - name: plugins
+          emptyDir: {}
+        - name: rulesfiles
+          emptyDir: {}
+        - name: falcoctl-config
+          configMap:
+            name: {{ include "sib-k8s.fullname" . }}-k8saudit-falcoctl
+{{- end }}

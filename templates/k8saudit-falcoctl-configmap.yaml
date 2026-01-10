@@ -1,0 +1,27 @@
+{{- if .Values.auditPlugin.k8saudit.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sib-k8s.fullname" . }}-k8saudit-falcoctl
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "sib-k8s.labels" . | nindent 4 }}
+    app.kubernetes.io/component: k8saudit
+data:
+  falcoctl.yaml: |
+    artifact:
+      allowedTypes:
+        - rulesfile
+        - plugin
+      install:
+        pluginsDir: /plugins
+        rulesfilesDir: /rulesfiles
+        refs:
+          - k8saudit:0.11
+          - k8saudit-rules:0.11
+          - json:0.7
+        resolveDeps: true
+    indexes:
+      - name: falcosecurity
+        url: https://falcosecurity.github.io/falcoctl/index.yaml
+{{- end }}

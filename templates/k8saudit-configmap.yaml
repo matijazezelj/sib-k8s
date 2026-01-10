@@ -1,0 +1,62 @@
+{{- if .Values.auditPlugin.k8saudit.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sib-k8s.fullname" . }}-k8saudit-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "sib-k8s.labels" . | nindent 4 }}
+    app.kubernetes.io/component: k8saudit
+data:
+  falco.yaml: |
+    # K8s Audit Log Configuration
+    # This instance of Falco runs without a driver and only processes k8saudit events
+    
+    # Engine kind - nodriver since we only use plugins
+    engine:
+      kind: nodriver
+    
+    plugins:
+      - name: k8saudit
+        library_path: libk8saudit.so
+        init_config:
+          maxEventBytes: {{ .Values.auditPlugin.k8saudit.maxEventBytes | default 1048576 }}
+          {{- if .Values.auditPlugin.k8saudit.sslCertificate }}
+          sslCertificate: {{ .Values.auditPlugin.k8saudit.sslCertificate }}
+          {{- end }}
+        open_params: "http://0.0.0.0:{{ .Values.auditPlugin.k8saudit.port }}/k8s-audit"
+      - name: json
+        library_path: libjson.so
+    
+    load_plugins: [k8saudit, json]
+    
+    # Rules files - loaded from /etc/falco/rules.d by falcoctl
+    rules_files:
+      - /etc/falco/rules.d
+    
+    # Output configuration
+    json_output: true
+    json_include_output_property: true
+    json_include_tags_property: true
+    
+    # HTTP output to Falcosidekick
+    http_output:
+      enabled: true
+      url: "http://{{ include "sib-k8s.fullname" . }}-falcosidekick:2801"
+      insecure: true
+    
+    # Priority
+    priority: informational
+    
+    # Buffered output
+    buffered_outputs: false
+    
+    # Time format
+    time_format_iso_8601: true
+    
+    # Health endpoint
+    webserver:
+      enabled: true
+      listen_port: 8765
+      k8s_healthz_endpoint: /healthz
+{{- end }}
