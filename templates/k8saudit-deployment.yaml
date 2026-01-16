@@ -22,14 +22,33 @@ spec:
       # Use hostNetwork so the API server (also on hostNetwork) can reach this service directly
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       initContainers:
         - name: falcoctl-artifact-install
           image: docker.io/falcosecurity/falcoctl:0.11.0
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            capabilities:
+              drop:
+                - ALL
           args:
             - artifact
             - install
             - --log-format=json
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
           volumeMounts:
             - name: plugins
               mountPath: /plugins
@@ -41,6 +60,15 @@ spec:
         - name: falco-k8saudit
           image: docker.io/falcosecurity/falco:0.40.0-debian
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            capabilities:
+              drop:
+                - ALL
           command: ["/usr/bin/falco"]
           args:
             - -c
@@ -62,6 +90,10 @@ spec:
               mountPath: /usr/share/falco/plugins
             - name: rulesfiles
               mountPath: /etc/falco/rules.d
+            - name: tmp
+              mountPath: /tmp
+            - name: var-run
+              mountPath: /var/run
           resources:
             requests:
               cpu: 100m
@@ -88,6 +120,10 @@ spec:
         - name: plugins
           emptyDir: {}
         - name: rulesfiles
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        - name: var-run
           emptyDir: {}
         - name: falcoctl-config
           configMap:

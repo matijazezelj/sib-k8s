@@ -286,6 +286,65 @@ serviceMonitor:
 - `values-aks.yaml` - Azure AKS configuration
 - `values-k8saudit.yaml` - Generic K8s webhook configuration
 
+## 🔐 Security Hardening
+
+This chart implements Kubernetes security best practices:
+
+### Container Security Context
+
+All containers are configured with:
+- `allowPrivilegeEscalation: false` - Prevents privilege escalation
+- `readOnlyRootFilesystem: true` - Immutable container filesystem
+- `runAsNonRoot: true` - Containers run as non-root user
+- `runAsUser/runAsGroup: 10001` - High UID/GID to avoid conflicts
+- `capabilities.drop: [ALL]` - Drops all Linux capabilities
+- `seccompProfile: RuntimeDefault` - Applies default seccomp profile
+
+### Security Scanning
+
+Run Trivy to scan for vulnerabilities and misconfigurations:
+
+```bash
+trivy fs --scanners vuln,secret,misconfig .
+```
+
+### Known Security Exceptions
+
+Some security findings are expected due to architectural requirements. These are documented in `.trivyignore`:
+
+| Finding | Reason |
+|---------|--------|
+| `hostNetwork: true` (k8saudit) | Required for API server webhook integration |
+| `hostPort` (k8saudit) | Required for webhook endpoint accessibility |
+| Untrusted registry | Using official registries (docker.io, ghcr.io) |
+| `:latest` tag | Configurable via `analysis.image.tag` |
+| Default namespace | Set during Helm install (`-n <namespace>`) |
+
+### Recommendations for Production
+
+1. **Use specific image tags** instead of `:latest`:
+   ```yaml
+   analysis:
+     image:
+       tag: "v1.0.0"  # Pin to specific version
+   ```
+
+2. **Deploy to a dedicated namespace**:
+   ```bash
+   helm install sib-k8s . -n security-monitoring --create-namespace
+   ```
+
+3. **Enable network policies** to restrict traffic:
+   ```yaml
+   networkPolicies:
+     enabled: true
+   ```
+
+4. **Use Pod Security Standards** (Kubernetes 1.25+):
+   ```bash
+   kubectl label namespace sib-k8s pod-security.kubernetes.io/enforce=restricted
+   ```
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please read the contributing guidelines and submit pull requests.

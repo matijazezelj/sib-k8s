@@ -24,12 +24,21 @@ spec:
       serviceAccountName: {{ include "sib-k8s.analysis.fullname" . }}
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: analysis
           image: "{{ .Values.analysis.image.repository }}:{{ .Values.analysis.image.tag }}"
           imagePullPolicy: {{ .Values.analysis.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: http
               containerPort: {{ .Values.analysis.service.port }}
@@ -107,8 +116,12 @@ spec:
               mountPath: /app/cache
             - name: config
               mountPath: /app/config
+            - name: tmp
+              mountPath: /tmp
       volumes:
         - name: cache
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}
         - name: config
           configMap:

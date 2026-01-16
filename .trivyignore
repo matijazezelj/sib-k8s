@@ -1,0 +1,56 @@
+# SIB-K8s Trivy Ignore File
+# This file documents security findings that cannot be fixed due to architectural requirements.
+# Each entry includes an explanation of why the finding is acceptable.
+
+# =============================================================================
+# K8saudit Deployment - Required for Kubernetes API Server Webhook Integration
+# =============================================================================
+
+# AVD-KSV-0009: hostNetwork is required for the k8saudit webhook receiver.
+# The Kubernetes API server runs on the host network and needs direct access
+# to the Falco k8saudit plugin to send audit webhook events.
+AVD-KSV-0009
+
+# AVD-KSV-0024: hostPort is required for the k8saudit webhook receiver.
+# The API server must be able to reach the webhook endpoint on a known port
+# on the node's network interface.
+AVD-KSV-0024
+
+# =============================================================================
+# Untrusted Registry Warnings - Using Official Container Registries
+# =============================================================================
+
+# AVD-KSV-0125: Images are pulled from official, trusted registries:
+# - docker.io/falcosecurity/* - Official Falco images
+# - docker.io/grafana/* - Official Grafana images
+# - ghcr.io/* - GitHub Container Registry (used for sib-k8s-analyzer)
+# These are legitimate, well-maintained registries. The "untrusted" warning
+# is because Trivy's default trusted list is very restrictive.
+AVD-KSV-0125
+
+# =============================================================================
+# Image Tag Warnings - Design Choice
+# =============================================================================
+
+# AVD-KSV-0013: The analysis service uses :latest tag by default.
+# This is configurable via Helm values (.Values.analysis.image.tag).
+# Users should set a specific version tag in production deployments.
+AVD-KSV-0013
+
+# =============================================================================
+# Default Namespace Warning - Handled by Helm
+# =============================================================================
+
+# AVD-KSV-0110: Trivy scans templates without Helm context.
+# The actual namespace is set during `helm install -n <namespace>`.
+# All resources will be deployed to the user-specified namespace.
+AVD-KSV-0110
+
+# =============================================================================
+# ConfigMap Sensitive Content - False Positives
+# =============================================================================
+
+# AVD-KSV-01010: These are configuration values, not sensitive secrets.
+# Items like CACHE_TTL, PORT, OLLAMA_TIMEOUT are operational settings.
+# Actual secrets (API keys) are stored in Kubernetes Secrets, not ConfigMaps.
+AVD-KSV-01010
