@@ -54,3 +54,56 @@ AVD-KSV-0110
 # Items like CACHE_TTL, PORT, OLLAMA_TIMEOUT are operational settings.
 # Actual secrets (API keys) are stored in Kubernetes Secrets, not ConfigMaps.
 AVD-KSV-01010
+
+# =============================================================================
+# Falco DaemonSet - Required for Syscall Monitoring
+# =============================================================================
+
+# AVD-KSV-0017: Falco requires privileged mode for syscall monitoring.
+# The eBPF/kernel module driver needs elevated privileges to attach probes
+# to the kernel for detecting security-relevant syscalls.
+AVD-KSV-0017
+
+# AVD-KSV-0121: Falco requires hostPath volumes for syscall monitoring.
+# Mounts like /proc, /boot, /etc, /usr are needed to:
+# - Read kernel symbols and configuration
+# - Access process information
+# - Load eBPF programs
+AVD-KSV-0121
+
+# AVD-KSV-0118: Falco daemonset uses default security context by design.
+# Syscall monitoring requires root privileges and access to host resources.
+# This is an expected requirement for runtime security tools.
+AVD-KSV-0118
+
+# =============================================================================
+# Helm Test Pods - Non-Production Resources
+# =============================================================================
+
+# AVD-KSV-0014, AVD-KSV-0118: Helm test pods (*-test, *-test-connection)
+# These are temporary pods used only during `helm test` for validation.
+# They are not deployed in normal operation and have minimal security impact.
+# Affected: test-falcosidekick-test-connection, test-grafana-test, loki-helm-test
+AVD-KSV-0014
+
+# =============================================================================
+# Upstream Chart Init Containers - Cannot Override
+# =============================================================================
+
+# init-chown-data (Grafana), loki-sc-rules (Loki):
+# These init containers in upstream charts don't expose security context
+# configuration options. They run briefly during startup to set permissions.
+# Risk is mitigated by:
+# - Short execution time (init only)
+# - Limited scope (file permission changes)
+# - Upstream chart maintainer responsibility
+
+# =============================================================================
+# Loki ClusterRole - Upstream Chart Design
+# =============================================================================
+
+# AVD-KSV-0041: Loki ClusterRole has secrets access for service discovery.
+# This is required by Loki's memberlist/ring functionality to discover
+# other Loki instances in distributed mode. In SingleBinary mode (our default),
+# this permission is less critical but still created by the upstream chart.
+AVD-KSV-0041

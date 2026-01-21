@@ -368,6 +368,23 @@ falcosidekick:
   webui:
     enabled: false
 
+  # -- Pod security context
+  podSecurityContext:
+    runAsUser: 1234
+    runAsGroup: 1234
+    fsGroup: 1234
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Container security context
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    capabilities:
+      drop:
+        - ALL
+
   # -- Output configuration
   config:
     # -- Debug mode
@@ -520,6 +537,25 @@ grafana:
   # -- Admin credentials
   adminUser: admin
   adminPassword: ""  # Will be auto-generated if empty
+
+  # -- Pod security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 472
+    runAsGroup: 472
+    fsGroup: 472
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Container security context
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
 
   # -- Persistence
   persistence:
