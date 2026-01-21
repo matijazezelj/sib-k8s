@@ -1,4 +1,10 @@
-{{- if .Values.auditPlugin.k8saudit.enabled }}
+{{- $pluginType := .Values.auditPlugin.type | default "k8saudit" }}
+{{- $isWebhook := eq $pluginType "k8saudit" }}
+{{- $isEks := eq $pluginType "k8saudit-eks" }}
+{{- $isGke := eq $pluginType "k8saudit-gke" }}
+{{- $isAks := eq $pluginType "k8saudit-aks" }}
+{{- $isEnabled := or $isWebhook $isEks $isGke $isAks }}
+{{- if $isEnabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,10 +24,19 @@ spec:
       labels:
         {{- include "sib-k8s.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: k8saudit
+        {{- if $isAks }}
+        azure.workload.identity/use: "true"
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/k8saudit-configmap.yaml") . | sha256sum }}
+        checksum/falcoctl: {{ include (print $.Template.BasePath "/k8saudit-falcoctl-configmap.yaml") . | sha256sum }}
     spec:
+      {{- if $isWebhook }}
       # Use hostNetwork so the API server (also on hostNetwork) can reach this service directly
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
+      serviceAccountName: {{ include "sib-k8s.fullname" . }}-k8saudit
       securityContext:
         seccompProfile:
           type: RuntimeDefault
@@ -58,7 +73,7 @@ spec:
               mountPath: /etc/falcoctl
       containers:
         - name: falco-k8saudit
-          image: docker.io/falcosecurity/falco:0.40.0-debian
+          image: docker.io/falcosecurity/falco-no-driver:0.40.0
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -78,11 +93,58 @@ spec:
           env:
             - name: HOST_ROOT
               value: ""
+            {{- if $isEks }}
+            # AWS EKS environment variables
+            - name: AWS_REGION
+              value: {{ .Values.auditPlugin.k8sauditEks.region | quote }}
+            {{- if and .Values.auditPlugin.k8sauditEks.credentials .Values.auditPlugin.k8sauditEks.credentials.accessKeyId }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sib-k8s.fullname" . }}-k8saudit-aws
+                  key: access-key-id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sib-k8s.fullname" . }}-k8saudit-aws
+                  key: secret-access-key
+            {{- if .Values.auditPlugin.k8sauditEks.credentials.sessionToken }}
+            - name: AWS_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sib-k8s.fullname" . }}-k8saudit-aws
+                  key: session-token
+            {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- if $isGke }}
+            # GKE environment variables
+            {{- if .Values.auditPlugin.k8sauditGke.credentialsFile }}
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/google/credentials.json
+            {{- end }}
+            {{- end }}
+            {{- if $isAks }}
+            # AKS environment variables
+            {{- if and .Values.auditPlugin.k8sauditAks.credentials .Values.auditPlugin.k8sauditAks.credentials.tenantId }}
+            - name: AZURE_TENANT_ID
+              value: {{ .Values.auditPlugin.k8sauditAks.credentials.tenantId | quote }}
+            - name: AZURE_CLIENT_ID
+              value: {{ .Values.auditPlugin.k8sauditAks.credentials.clientId | quote }}
+            - name: AZURE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sib-k8s.fullname" . }}-k8saudit-azure
+                  key: client-secret
+            {{- end }}
+            {{- end }}
+          {{- if $isWebhook }}
           ports:
             - name: webhook
               containerPort: {{ .Values.auditPlugin.k8saudit.port }}
               hostPort: {{ .Values.auditPlugin.k8saudit.port }}
               protocol: TCP
+          {{- end }}
           volumeMounts:
             - name: config
               mountPath: /etc/falco
@@ -94,6 +156,11 @@ spec:
               mountPath: /tmp
             - name: var-run
               mountPath: /var/run
+            {{- if and $isGke .Values.auditPlugin.k8sauditGke.credentialsFile }}
+            - name: gcp-credentials
+              mountPath: /var/secrets/google
+              readOnly: true
+            {{- end }}
           resources:
             requests:
               cpu: 100m
@@ -128,4 +195,9 @@ spec:
         - name: falcoctl-config
           configMap:
             name: {{ include "sib-k8s.fullname" . }}-k8saudit-falcoctl
+        {{- if and $isGke .Values.auditPlugin.k8sauditGke.credentialsFile }}
+        - name: gcp-credentials
+          secret:
+            secretName: {{ include "sib-k8s.fullname" . }}-k8saudit-gcp
+        {{- end }}
 {{- end }}

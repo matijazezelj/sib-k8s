@@ -151,6 +151,12 @@ auditPlugin:
     # -- Use Azure Workload Identity (recommended)
     useWorkloadIdentity: true
 
+    # -- Azure Managed Identity Client ID (for Workload Identity)
+    clientId: ""
+
+    # -- Azure Tenant ID (for Workload Identity)
+    tenantId: ""
+
     # -- Azure credentials (not recommended, use Workload Identity)
     credentials:
       tenantId: ""
@@ -159,6 +165,9 @@ auditPlugin:
 
     # -- Connection string for Event Hub (alternative to Workload Identity)
     connectionString: ""
+
+    # -- Blob storage URI for checkpoint storage (optional)
+    blobStorageUri: ""
 
 # =============================================================================
 # Syscall Monitoring Configuration
