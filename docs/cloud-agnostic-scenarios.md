@@ -437,7 +437,7 @@ auditPlugin:
 kubectl logs -n sib-k8s deploy/sib-k8s-k8saudit -f
 
 # Verify API server can reach webhook
-kubectl exec -n kube-system <api-server-pod> -- curl http://<webhook-ip>:9765/healthz
+kubectl exec -n kube-system <api-server-pod> -- curl http://<webhook-ip>:8765/healthz
 ```
 
 ### EKS CloudWatch Issues
