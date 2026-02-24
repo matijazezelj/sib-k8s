@@ -32,6 +32,28 @@ K8s Audit Sources (webhook / CloudWatch / Cloud Logging / Event Hub)
 - **Dashboards** — pre-built Grafana dashboards for security events and audit logs
 - **Alert routing** — Falcosidekick integration (Slack, Teams, PagerDuty, etc.)
 
+## Why SIB-K8s?
+
+There are several tools in the Kubernetes security space. Here's how SIB-K8s compares:
+
+| | SIB-K8s | Falco + Falcosidekick | Sysdig Secure | Aqua / StackRox | Wazuh |
+|---|---|---|---|---|---|
+| Deployment | Single Helm chart | Manual wiring | SaaS / agent | SaaS / operator | Server + agents |
+| AI analysis | Built-in (Ollama, OpenAI, Anthropic) | None | Proprietary | None | None |
+| Privacy obfuscation | Yes (3 levels) | N/A | No (data sent to vendor) | No | No |
+| Multi-cloud audit | EKS, GKE, AKS, webhook | Plugin per cloud | EKS, GKE | EKS, GKE, AKS | Manual config |
+| MITRE ATT&CK mapping | Automatic (AI) | Manual rules | Yes | Yes | Yes |
+| Dashboards | Included (Grafana) | BYO | Proprietary | Proprietary | Included |
+| Cost | Free / open source | Free / open source | Commercial | Commercial | Free / commercial |
+| Self-hosted LLM | Yes (Ollama) | N/A | No | No | No |
+
+**Key differentiators:**
+
+- **One `helm install`** — Falco, Falcosidekick, Loki, Grafana, and the AI analyzer are deployed and wired together automatically. No manual plumbing.
+- **Privacy-first AI** — alerts are obfuscated before reaching any LLM. Sensitive data (IPs, secrets, hostnames) never leaves your control at standard/paranoid levels.
+- **Bring your own LLM** — run Ollama in-cluster for fully air-gapped analysis, or use OpenAI/Anthropic when that's acceptable.
+- **Cloud-native audit out of the box** — switch between webhook, CloudWatch, Cloud Logging, or Event Hub by changing a single value.
+
 ## Prerequisites
 
 - Kubernetes 1.25+
