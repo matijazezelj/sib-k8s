@@ -1,130 +1,74 @@
-# 🛡️ SIB-K8s: SIEM in a Box for Kubernetes
+# SIB-K8s
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Helm](https://img.shields.io/badge/Helm-3.x-blue.svg)](https://helm.sh)
 
-SIB-K8s is a comprehensive Kubernetes security monitoring solution delivered as an umbrella Helm chart. It combines runtime security detection with AI-powered alert analysis, providing enterprise-grade security monitoring with privacy-preserving features.
+SIEM in a Box for Kubernetes — an umbrella Helm chart that combines [Falco](https://falco.org/) runtime detection with AI-powered alert analysis. Supports AWS EKS, Google GKE, Azure AKS, and generic Kubernetes clusters.
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              SIB-K8s                                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │                        K8s Audit Sources                              │   │
-│  │  ┌─────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │   │
-│  │  │k8saudit │  │k8saudit-eks │  │k8saudit-gke │  │k8saudit-aks │     │   │
-│  │  │(webhook)│  │(CloudWatch) │  │(Cloud Log)  │  │(Event Hub)  │     │   │
-│  │  └────┬────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘     │   │
-│  └───────┴──────────────┴────────────────┴────────────────┴─────────────┘   │
-│                                    │                                         │
-│                                    ▼                                         │
-│  ┌──────────────┐     ┌─────────────────┐     ┌───────────────────────────┐ │
-│  │    Falco     │     │  Falcosidekick  │     │          Loki             │ │
-│  │  (Detection) │────▶│   (Fan-out)     │────▶│    (Log Storage)          │ │
-│  │              │     │                 │     │                           │ │
-│  └──────────────┘     └─────────────────┘     └───────────────────────────┘ │
-│         │                     │                            │                 │
-│         │                     ▼                            ▼                 │
-│         │            ┌─────────────────┐          ┌───────────────┐         │
-│         │            │ Analysis Service │          │    Grafana    │         │
-│         │            │  (AI + Obfusc)  │          │  (Dashboards) │         │
-│         │            └─────────────────┘          └───────────────┘         │
-│         │                     │                                              │
-│         │                     ▼                                              │
-│         │            ┌─────────────────┐                                     │
-│         └───────────▶│   LLM Provider  │                                     │
-│  (syscall events)    │ Ollama/OpenAI/  │                                     │
-│                      │   Anthropic     │                                     │
-│                      └─────────────────┘                                     │
-└─────────────────────────────────────────────────────────────────────────────┘
+K8s Audit Sources (webhook / CloudWatch / Cloud Logging / Event Hub)
+                    ↓
+              Falco (detection)
+                    ↓
+           Falcosidekick (routing)
+             ↙            ↘
+          Loki           Analyzer
+         (logs)       (AI + obfuscation)
+           ↘              ↓
+            ↘        LLM Provider
+             ↘     (Ollama/OpenAI/Anthropic)
+              ↘         ↙
+            Grafana (dashboards)
 ```
 
-## ✨ Features
+## Features
 
-### Multi-Cloud K8s Audit Support
-- **Generic Kubernetes** (`k8saudit`): Webhook-based for any Kubernetes cluster
-- **AWS EKS** (`k8saudit-eks`): Direct integration with CloudWatch Logs
-- **Google GKE** (`k8saudit-gke`): Direct integration with Cloud Logging
-- **Azure AKS** (`k8saudit-aks`): Direct integration with Event Hub
+- **Multi-cloud audit support** — `k8saudit` (webhook), `k8saudit-eks`, `k8saudit-gke`, `k8saudit-aks`
+- **Runtime detection** — syscall monitoring with Falco (eBPF)
+- **AI analysis** — privacy-preserving alert analysis with MITRE ATT&CK mapping
+- **Obfuscation** — three levels (minimal / standard / paranoid) to protect sensitive data before LLM calls
+- **Dashboards** — pre-built Grafana dashboards for security events and audit logs
+- **Alert routing** — Falcosidekick integration (Slack, Teams, PagerDuty, etc.)
 
-### Security Monitoring
-- Runtime security detection with Falco
-- Syscall-level monitoring (optional)
-- K8s audit log analysis
-- MITRE ATT&CK mapping
-
-### AI-Powered Analysis
-- Privacy-preserving alert analysis
-- Three obfuscation levels: minimal, standard, paranoid
-- Support for multiple LLM providers (Ollama, OpenAI, Anthropic)
-- Automatic MITRE ATT&CK mapping
-- Risk assessment and severity scoring
-- Investigation recommendations
-
-### Observability
-- Centralized logging with Loki
-- Pre-built Grafana dashboards
-- Alert routing with Falcosidekick
-- Integration with Slack, Teams, PagerDuty, and more
-
-## 📋 Prerequisites
+## Prerequisites
 
 - Kubernetes 1.25+
 - Helm 3.x
-- For syscall monitoring: Linux kernel 5.8+ (for modern_ebpf driver)
-- For AI analysis: Access to LLM provider (Ollama, OpenAI, or Anthropic)
+- Linux kernel 5.8+ (for `modern_ebpf` syscall driver)
+- LLM provider access (Ollama, OpenAI, or Anthropic)
 
-## 🚀 Quick Start
-
-### Add the Helm Repository
+## Quick Start
 
 ```bash
-# Add the repository (when published)
-helm repo add sib-k8s https://matijazezelj.github.io/sib-k8s
-helm repo update
-
-# Or install from local chart
+# From local chart
 git clone https://github.com/matijazezelj/sib-k8s.git
 cd sib-k8s
+helm dependency update
 ```
 
-### Install for Generic Kubernetes (Webhook)
+Install with the appropriate values file for your environment:
 
 ```bash
-helm install sib-k8s . \
-  -f values-k8saudit.yaml \
-  -n sib-k8s --create-namespace
-```
+# Generic Kubernetes (webhook)
+helm install sib-k8s . -f values-k8saudit.yaml -n sib-k8s --create-namespace
 
-### Install for AWS EKS
-
-```bash
-helm install sib-k8s . \
-  -f values-eks.yaml \
+# AWS EKS
+helm install sib-k8s . -f values-eks.yaml \
   --set auditPlugin.k8sauditEks.logGroup="/aws/eks/my-cluster/cluster" \
   --set auditPlugin.k8sauditEks.region="us-east-1" \
   -n sib-k8s --create-namespace
-```
 
-### Install for Google GKE
-
-```bash
-helm install sib-k8s . \
-  -f values-gke.yaml \
+# Google GKE
+helm install sib-k8s . -f values-gke.yaml \
   --set auditPlugin.k8sauditGke.projectId="my-project" \
   --set auditPlugin.k8sauditGke.clusterId="my-cluster" \
   --set auditPlugin.k8sauditGke.location="us-central1" \
   -n sib-k8s --create-namespace
-```
 
-### Install for Azure AKS
-
-```bash
-helm install sib-k8s . \
-  -f values-aks.yaml \
+# Azure AKS
+helm install sib-k8s . -f values-aks.yaml \
   --set auditPlugin.k8sauditAks.subscriptionId="..." \
   --set auditPlugin.k8sauditAks.resourceGroup="my-rg" \
   --set auditPlugin.k8sauditAks.clusterName="my-cluster" \
@@ -132,231 +76,111 @@ helm install sib-k8s . \
   -n sib-k8s --create-namespace
 ```
 
-## 📖 Configuration
+See [docs/cloud-agnostic-scenarios.md](docs/cloud-agnostic-scenarios.md) for detailed cloud-specific setup (IAM roles, Workload Identity, Event Hub, etc.).
 
-### Selecting the K8s Audit Plugin
+## Configuration
 
-The `auditPlugin.type` value determines which plugin to use:
+### Audit Plugin
 
-| Value | Description | Use Case |
-|-------|-------------|----------|
-| `k8saudit` | Webhook-based | Any K8s cluster with API server access |
-| `k8saudit-eks` | CloudWatch integration | AWS EKS clusters |
-| `k8saudit-gke` | Cloud Logging integration | Google GKE clusters |
-| `k8saudit-aks` | Event Hub integration | Azure AKS clusters |
+Set `auditPlugin.type` to one of:
 
-### Syscall Monitoring
+| Value | Source | Auth |
+|-------|--------|------|
+| `k8saudit` | Webhook | None (requires API server config) |
+| `k8saudit-eks` | CloudWatch Logs | IRSA |
+| `k8saudit-gke` | Cloud Logging | Workload Identity |
+| `k8saudit-aks` | Event Hub | Workload Identity |
 
-Enable syscall monitoring for host-level detection:
-
-```yaml
-syscallMonitoring:
-  enabled: true
-  driverKind: modern_ebpf  # or: kmod, ebpf, auto
-```
-
-### Analysis Service Configuration
-
-Configure AI-powered analysis:
+### Analysis Service
 
 ```yaml
 analysis:
   enabled: true
-  
   obfuscation:
-    level: standard  # minimal, standard, paranoid
-  
+    level: standard        # minimal, standard, paranoid
   llm:
-    provider: ollama  # or: openai, anthropic
-    
+    provider: ollama       # ollama, openai, anthropic
     ollama:
       url: http://ollama:11434
       model: llama3.1:8b
-    
-    # For OpenAI:
-    # openai:
-    #   existingSecret: openai-api-key
-    #   secretKey: api-key
-    #   model: gpt-4o-mini
 ```
 
-### Output Configuration
+For OpenAI/Anthropic, provide an API key via a Kubernetes secret:
 
-Configure where alerts are sent:
+```bash
+kubectl create secret generic openai-secret --from-literal=api-key=sk-xxx
+```
 
 ```yaml
-falcosidekick:
-  enabled: true
-  config:
-    slack:
-      webhookurl: "https://hooks.slack.com/services/..."
-    
-    teams:
-      webhookurl: "https://outlook.office.com/webhook/..."
-    
-    pagerduty:
-      routingkey: "..."
+analysis:
+  llm:
+    provider: openai
+    openai:
+      existingSecret: openai-secret
+      secretKey: api-key
+      model: gpt-4o-mini
 ```
-
-## 🔒 Privacy & Obfuscation
-
-The analysis service implements privacy-preserving obfuscation to protect sensitive data before sending to LLM providers:
 
 ### Obfuscation Levels
 
-| Level | Description | What's Obfuscated |
-|-------|-------------|-------------------|
-| `minimal` | Only credentials | API keys, tokens, passwords |
-| `standard` | Recommended | + IPs, hostnames, usernames, container IDs |
-| `paranoid` | Maximum privacy | + File paths, high-entropy strings |
+| Level | What's Obfuscated |
+|-------|-------------------|
+| `minimal` | API keys, tokens, passwords |
+| `standard` | + IPs, hostnames, usernames, container IDs |
+| `paranoid` | + file paths, high-entropy strings |
 
-### What Gets Protected
+### Accessing Services
 
-- AWS/GCP/Azure credentials and tokens
-- GitHub/GitLab tokens
-- Database connection strings
-- Private keys and certificates
-- Internal IP addresses and hostnames
-- Usernames and email addresses
-- Container and pod IDs
-
-## 📊 Grafana Dashboards
-
-Pre-built dashboards included:
-
-1. **SIB-K8s Overview**: Summary of all security events
-2. **K8s Audit Events**: Kubernetes API audit analysis
-
-Access Grafana:
 ```bash
+# Grafana
 kubectl port-forward -n sib-k8s svc/sib-k8s-grafana 3000:80
-# Open http://localhost:3000
-# Get password: kubectl get secret -n sib-k8s sib-k8s-grafana -o jsonpath="{.data.admin-password}" | base64 -d
+kubectl get secret -n sib-k8s sib-k8s-grafana -o jsonpath="{.data.admin-password}" | base64 -d
+
+# Analysis service health
+kubectl port-forward -n sib-k8s svc/sib-k8s-analysis 8080:8080
+curl http://localhost:8080/health
 ```
 
-## 🔧 Advanced Configuration
+## Chart Dependencies
 
-### Custom Falco Rules
-
-```yaml
-customRules:
-  enabled: true
-  rules: |
-    - rule: My Custom Rule
-      desc: Detect specific behavior
-      condition: evt.type = open and fd.name contains "/sensitive"
-      output: "Sensitive file access: %fd.name by %proc.name"
-      priority: WARNING
-      tags: [custom, sensitive]
-```
-
-### Network Policies
-
-```yaml
-networkPolicies:
-  enabled: true
-  allowedNamespaces:
-    - kube-system
-    - monitoring
-```
-
-### Service Monitor (Prometheus)
-
-```yaml
-serviceMonitor:
-  enabled: true
-  labels:
-    release: prometheus
-```
-
-## 🏷️ Chart Dependencies
-
-| Dependency | Version | Repository |
-|------------|---------|------------|
+| Chart | Version | Repository |
+|-------|---------|------------|
 | Falco | 4.20.0 | falcosecurity |
 | Falcosidekick | 0.9.5 | falcosecurity |
 | Loki | 6.24.0 | grafana |
 | Grafana | 8.8.2 | grafana |
 
-## 📝 Example Values Files
+## Values Files
 
-- `values.yaml` - Default configuration
-- `values-eks.yaml` - AWS EKS configuration
-- `values-gke.yaml` - Google GKE configuration
-- `values-aks.yaml` - Azure AKS configuration
-- `values-k8saudit.yaml` - Generic K8s webhook configuration
+| File | Environment |
+|------|-------------|
+| `values.yaml` | Defaults (all options documented) |
+| `values-eks.yaml` | AWS EKS |
+| `values-gke.yaml` | Google GKE |
+| `values-aks.yaml` | Azure AKS |
+| `values-k8saudit.yaml` | Generic webhook |
 
-## 🔐 Security Hardening
+## Security
 
-This chart implements Kubernetes security best practices:
-
-### Container Security Context
-
-All containers are configured with:
-- `allowPrivilegeEscalation: false` - Prevents privilege escalation
-- `readOnlyRootFilesystem: true` - Immutable container filesystem
-- `runAsNonRoot: true` - Containers run as non-root user
-- `runAsUser/runAsGroup: 10001` - High UID/GID to avoid conflicts
-- `capabilities.drop: [ALL]` - Drops all Linux capabilities
-- `seccompProfile: RuntimeDefault` - Applies default seccomp profile
-
-### Security Scanning
-
-Run Trivy to scan for vulnerabilities and misconfigurations:
+All containers run with a hardened security context (`runAsNonRoot`, `readOnlyRootFilesystem`, `drop ALL` capabilities, `seccompProfile: RuntimeDefault`). The only exception is `hostNetwork` for the webhook receiver, which is required for API server connectivity. See `.trivyignore` for documented exceptions.
 
 ```bash
+# Scan for vulnerabilities
 trivy fs --scanners vuln,secret,misconfig .
 ```
 
-### Known Security Exceptions
+## Documentation
 
-Some security findings are expected due to architectural requirements. These are documented in `.trivyignore`:
+- [Cloud-Agnostic Deployment Scenarios](docs/cloud-agnostic-scenarios.md) — detailed setup for each cloud provider
+- [Talos Audit Setup](docs/talos-audit-setup.md) — configuring audit webhooks on Talos Linux
 
-| Finding | Reason |
-|---------|--------|
-| `hostNetwork: true` (k8saudit) | Required for API server webhook integration |
-| `hostPort` (k8saudit) | Required for webhook endpoint accessibility |
-| Untrusted registry | Using official registries (docker.io, ghcr.io) |
-| `:latest` tag | Configurable via `analysis.image.tag` |
-| Default namespace | Set during Helm install (`-n <namespace>`) |
+## License
 
-### Recommendations for Production
+Apache 2.0 — see [LICENSE](LICENSE).
 
-1. **Use specific image tags** instead of `:latest`:
-   ```yaml
-   analysis:
-     image:
-       tag: "v1.0.0"  # Pin to specific version
-   ```
+## Acknowledgments
 
-2. **Deploy to a dedicated namespace**:
-   ```bash
-   helm install sib-k8s . -n security-monitoring --create-namespace
-   ```
-
-3. **Enable network policies** to restrict traffic:
-   ```yaml
-   networkPolicies:
-     enabled: true
-   ```
-
-4. **Use Pod Security Standards** (Kubernetes 1.25+):
-   ```bash
-   kubectl label namespace sib-k8s pod-security.kubernetes.io/enforce=restricted
-   ```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read the contributing guidelines and submit pull requests.
-
-## 📄 License
-
-This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Falco](https://falco.org/) - Cloud native runtime security
-- [Falcosidekick](https://github.com/falcosecurity/falcosidekick) - Alert routing
-- [Grafana](https://grafana.com/) - Observability platform
-- [Loki](https://grafana.com/oss/loki/) - Log aggregation
-- [SIB](https://github.com/matijazezelj/sib) - Original SIEM in a Box project
+- [Falco](https://falco.org/) — runtime security
+- [Falcosidekick](https://github.com/falcosecurity/falcosidekick) — alert routing
+- [Grafana](https://grafana.com/) & [Loki](https://grafana.com/oss/loki/) — observability
+- [SIB](https://github.com/matijazezelj/sib) — original SIEM in a Box project
