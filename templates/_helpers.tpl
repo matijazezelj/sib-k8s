@@ -229,17 +229,6 @@ Generate Falcosidekick URL for Falco HTTP output
 {{- end }}
 
 {{/*
-Create the name of the service account to use for analysis
-*/}}
-{{- define "sib-k8s.analysis.serviceAccountName" -}}
-{{- if .Values.analysis.serviceAccount.create }}
-{{- default (include "sib-k8s.analysis.fullname" .) .Values.analysis.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.analysis.serviceAccount.name }}
-{{- end }}
-{{- end }}
-
-{{/*
 Generate falcoctl artifact refs based on plugin type
 */}}
 {{- define "sib-k8s.falcoctl.installRefs" -}}

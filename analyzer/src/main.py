@@ -1,6 +1,5 @@
 """FastAPI application for the SIB-K8s Analyzer service."""
 
-import json
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List
 

@@ -5,3 +5,4 @@ charts/*.tgz
 .DS_Store
 *.swp
 *.bak
+CLAUDE.md

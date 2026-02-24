@@ -151,12 +151,6 @@ auditPlugin:
     # -- Use Azure Workload Identity (recommended)
     useWorkloadIdentity: true
 
-    # -- Azure Managed Identity Client ID (for Workload Identity)
-    clientId: ""
-
-    # -- Azure Tenant ID (for Workload Identity)
-    tenantId: ""
-
     # -- Azure credentials (not recommended, use Workload Identity)
     credentials:
       tenantId: ""
@@ -165,9 +159,6 @@ auditPlugin:
 
     # -- Connection string for Event Hub (alternative to Workload Identity)
     connectionString: ""
-
-    # -- Blob storage URI for checkpoint storage (optional)
-    blobStorageUri: ""
 
 # =============================================================================
 # Syscall Monitoring Configuration
@@ -218,15 +209,6 @@ analysis:
   obfuscation:
     # -- Obfuscation level: minimal, standard, paranoid
     level: standard
-
-    # -- Custom patterns to obfuscate (regex)
-    customPatterns: {}
-
-    # -- Fields to always preserve (not obfuscate)
-    preserveFields:
-      - rule
-      - priority
-      - source
 
   # -- LLM Provider configuration
   llm:
@@ -279,13 +261,6 @@ analysis:
     ttl: 3600
     maxSize: 1000
 
-  # -- Grafana integration
-  grafana:
-    # -- Enable data link integration
-    dataLink: true
-    # -- Base URL for analysis service
-    baseUrl: ""
-
 # =============================================================================
 # Falco Configuration
 # =============================================================================
@@ -320,6 +295,8 @@ falco:
   # -- Falco configuration overrides
   falco:
     # -- HTTP output to Falcosidekick
+    # NOTE: URL assumes release name is "sib-k8s". If using a different
+    # release name, override with: --set falco.falco.http_output.url=http://<release>-falcosidekick:2801
     http_output:
       enabled: true
       url: "http://sib-k8s-falcosidekick:2801"
@@ -368,23 +345,6 @@ falcosidekick:
   webui:
     enabled: false
 
-  # -- Pod security context
-  podSecurityContext:
-    runAsUser: 1234
-    runAsGroup: 1234
-    fsGroup: 1234
-    seccompProfile:
-      type: RuntimeDefault
-
-  # -- Container security context
-  securityContext:
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-    runAsNonRoot: true
-    capabilities:
-      drop:
-        - ALL
-
   # -- Output configuration
   config:
     # -- Debug mode
@@ -393,14 +353,14 @@ falcosidekick:
     # -- Custom fields added to all alerts
     customfields: ""
 
-    # -- Loki output (auto-configured based on release name)
-    # URL will be: http://<release-name>-loki:3100
+    # -- Loki output
+    # NOTE: URLs assume release name is "sib-k8s". If using a different
+    # release name, override with --set flags.
     loki:
       hostport: "http://sib-k8s-loki:3100"
       minimumpriority: ""
 
     # -- Webhook output (to analysis service)
-    # URL will be: http://<release-name>-analysis:8080/webhook
     webhook:
       address: "http://sib-k8s-analysis:8080/webhook"
       minimumpriority: ""
@@ -538,25 +498,6 @@ grafana:
   adminUser: admin
   adminPassword: ""  # Will be auto-generated if empty
 
-  # -- Pod security context
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 472
-    runAsGroup: 472
-    fsGroup: 472
-    seccompProfile:
-      type: RuntimeDefault
-
-  # -- Container security context
-  containerSecurityContext:
-    allowPrivilegeEscalation: false
-    readOnlyRootFilesystem: true
-    capabilities:
-      drop:
-        - ALL
-    seccompProfile:
-      type: RuntimeDefault
-
   # -- Persistence
   persistence:
     enabled: true
@@ -602,71 +543,6 @@ grafana:
       allow_embedding: true
     auth.anonymous:
       enabled: false
-
-# =============================================================================
-# Ingress Configuration
-# =============================================================================
-ingress:
-  # -- Enable ingress
-  enabled: false
-
-  # -- Ingress class name
-  className: nginx
-
-  # -- Annotations
-  annotations: {}
-
-  # -- Hosts configuration
-  hosts:
-    - host: sib-k8s.local
-      paths:
-        - path: /grafana
-          pathType: Prefix
-          service: grafana
-        - path: /analysis
-          pathType: Prefix
-          service: analysis
-        - path: /sidekick
-          pathType: Prefix
-          service: falcosidekick-ui
-
-  # -- TLS configuration
-  tls: []
-
-# =============================================================================
-# ServiceMonitor Configuration (for Prometheus Operator)
-# =============================================================================
-serviceMonitor:
-  # -- Enable ServiceMonitor creation
-  enabled: false
-
-  # -- Labels for ServiceMonitor
-  labels: {}
-
-  # -- Scrape interval
-  interval: 30s
-
-  # -- Scrape timeout
-  scrapeTimeout: 10s
-
-# =============================================================================
-# Network Policies
-# =============================================================================
-networkPolicies:
-  # -- Enable network policies
-  enabled: false
-
-  # -- Allow ingress from specific namespaces
-  allowedNamespaces:
-    - kube-system
-    - monitoring
-
-# =============================================================================
-# Pod Security
-# =============================================================================
-podSecurityPolicy:
-  # -- Enable pod security policy
-  enabled: false
 
 # =============================================================================
 # Custom Rules Configuration

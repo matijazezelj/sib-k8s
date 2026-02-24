@@ -1,10 +1,4 @@
-{{- $pluginType := .Values.auditPlugin.type | default "k8saudit" }}
-{{- $isWebhook := eq $pluginType "k8saudit" }}
-{{- $isEks := eq $pluginType "k8saudit-eks" }}
-{{- $isGke := eq $pluginType "k8saudit-gke" }}
-{{- $isAks := eq $pluginType "k8saudit-aks" }}
-{{- $isEnabled := or $isWebhook $isEks $isGke $isAks }}
-{{- if $isEnabled }}
+{{- if .Values.auditPlugin.k8saudit.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -16,16 +10,13 @@ metadata:
 data:
   falco.yaml: |
     # K8s Audit Log Configuration
-    # Plugin type: {{ $pluginType }}
     # This instance of Falco runs without a driver and only processes k8saudit events
-
+    
     # Engine kind - nodriver since we only use plugins
     engine:
       kind: nodriver
-
+    
     plugins:
-      {{- if $isWebhook }}
-      # Generic k8saudit plugin (webhook-based)
       - name: k8saudit
         library_path: libk8saudit.so
         init_config:
@@ -34,92 +25,35 @@ data:
           sslCertificate: {{ .Values.auditPlugin.k8saudit.sslCertificate }}
           {{- end }}
         open_params: "http://0.0.0.0:{{ .Values.auditPlugin.k8saudit.port }}/k8s-audit"
-      {{- end }}
-      {{- if $isEks }}
-      # AWS EKS plugin (CloudWatch Logs)
-      - name: k8saudit-eks
-        library_path: libk8saudit-eks.so
-        init_config:
-          shift: {{ .Values.auditPlugin.k8sauditEks.shift | default 10 }}
-          polling_interval: {{ .Values.auditPlugin.k8sauditEks.pollingInterval | default 5 }}
-          {{- if .Values.auditPlugin.k8sauditEks.maxEventSize }}
-          max_event_size: {{ .Values.auditPlugin.k8sauditEks.maxEventSize }}
-          {{- end }}
-          {{- if .Values.auditPlugin.k8sauditEks.profile }}
-          profile: {{ .Values.auditPlugin.k8sauditEks.profile }}
-          {{- end }}
-          {{- if .Values.auditPlugin.k8sauditEks.useIRSA }}
-          use_async_api: true
-          {{- end }}
-        open_params: "{{ .Values.auditPlugin.k8sauditEks.region }}:{{ .Values.auditPlugin.k8sauditEks.logGroup }}:{{ .Values.auditPlugin.k8sauditEks.logStream }}"
-      {{- end }}
-      {{- if $isGke }}
-      # Google GKE plugin (Cloud Logging)
-      - name: k8saudit-gke
-        library_path: libk8saudit-gke.so
-        init_config:
-          polling_interval: {{ .Values.auditPlugin.k8sauditGke.pollingInterval | default 5 }}
-          {{- if .Values.auditPlugin.k8sauditGke.credentialsFile }}
-          credentials_file: /var/secrets/google/credentials.json
-          {{- end }}
-        open_params: "{{ .Values.auditPlugin.k8sauditGke.projectId }}:{{ .Values.auditPlugin.k8sauditGke.location }}:{{ .Values.auditPlugin.k8sauditGke.clusterId }}"
-      {{- end }}
-      {{- if $isAks }}
-      # Azure AKS plugin (Event Hub)
-      - name: k8saudit-aks
-        library_path: libk8saudit-aks.so
-        init_config:
-          {{- if .Values.auditPlugin.k8sauditAks.connectionString }}
-          event_hub_connection_string: {{ .Values.auditPlugin.k8sauditAks.connectionString | quote }}
-          {{- else }}
-          event_hub_namespace: {{ .Values.auditPlugin.k8sauditAks.eventHubNamespace }}
-          event_hub_name: {{ .Values.auditPlugin.k8sauditAks.eventHubName }}
-          {{- end }}
-          consumer_group: {{ .Values.auditPlugin.k8sauditAks.consumerGroup | default "$Default" }}
-          {{- if .Values.auditPlugin.k8sauditAks.blobStorageUri }}
-          blob_storage_uri: {{ .Values.auditPlugin.k8sauditAks.blobStorageUri }}
-          {{- end }}
-        open_params: ""
-      {{- end }}
       - name: json
         library_path: libjson.so
-
-    load_plugins:
-      {{- if $isWebhook }}
-      - k8saudit
-      {{- else if $isEks }}
-      - k8saudit-eks
-      {{- else if $isGke }}
-      - k8saudit-gke
-      {{- else if $isAks }}
-      - k8saudit-aks
-      {{- end }}
-      - json
-
+    
+    load_plugins: [k8saudit, json]
+    
     # Rules files - loaded from /etc/falco/rules.d by falcoctl
     rules_files:
       - /etc/falco/rules.d
-
+    
     # Output configuration
     json_output: true
     json_include_output_property: true
     json_include_tags_property: true
-
+    
     # HTTP output to Falcosidekick
     http_output:
       enabled: true
-      url: "http://{{ include "sib-k8s.fullname" . }}-falcosidekick:2801"
+      url: "http://{{ .Release.Name }}-falcosidekick:2801"
       insecure: true
-
+    
     # Priority
     priority: informational
-
+    
     # Buffered output
     buffered_outputs: false
-
+    
     # Time format
     time_format_iso_8601: true
-
+    
     # Health endpoint
     webserver:
       enabled: true

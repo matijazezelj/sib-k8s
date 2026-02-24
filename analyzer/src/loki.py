@@ -1,6 +1,7 @@
 """Loki client for pushing analysis results."""
 
 import json
+import re
 import time
 from typing import Any, Dict, Optional
 
@@ -117,8 +118,6 @@ def sanitize_label(value: str) -> str:
 
 def extract_risk_score(analysis: str) -> Optional[int]:
     """Extract risk score from analysis text."""
-    import re
-    
     # Look for patterns like "Risk Score: 7/10" or "risk: 4/10" or "7 out of 10"
     patterns = [
         r'[Rr]isk\s*[Ss]core[:\s]+(\d+)/10',

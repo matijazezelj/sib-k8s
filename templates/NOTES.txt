@@ -225,7 +225,7 @@ kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name=falco -f
 logcli query '{job="falco"}' --since=1h
 
 # Check analysis service health
-curl http://localhost:{{ .Values.analysis.service.port }}/healthz
+curl http://localhost:{{ .Values.analysis.service.port }}/health
 
 # Trigger a test alert (run in a pod)
 cat /etc/shadow

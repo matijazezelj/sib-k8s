@@ -114,8 +114,6 @@ spec:
           volumeMounts:
             - name: cache
               mountPath: /app/cache
-            - name: config
-              mountPath: /app/config
             - name: tmp
               mountPath: /tmp
       volumes:
@@ -123,7 +121,4 @@ spec:
           emptyDir: {}
         - name: tmp
           emptyDir: {}
-        - name: config
-          configMap:
-            name: {{ include "sib-k8s.analysis.fullname" . }}-config
 {{- end }}

@@ -1,8 +1,7 @@
 """LLM provider abstraction for security analysis."""
 
-import json
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import httpx
 import structlog
