@@ -9,40 +9,98 @@ from .config import ObfuscationLevel, settings
 
 class Obfuscator:
     """Obfuscates sensitive data based on configured level."""
-    
-    # Patterns for sensitive data detection
+
+    # Compiled patterns for network identifiers and Kubernetes resources
     PATTERNS = {
         # IP addresses
         "ipv4": re.compile(r'\b(?:\d{1,3}\.){3}\d{1,3}\b'),
         "ipv6": re.compile(r'\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b'),
-        
+
         # Kubernetes resources
         "namespace": re.compile(r'namespace["\s:=]+([a-z0-9-]+)', re.IGNORECASE),
         "pod_name": re.compile(r'pod["\s:=]+([a-z0-9-]+)', re.IGNORECASE),
         "container_name": re.compile(r'container["\s:=]+([a-z0-9-]+)', re.IGNORECASE),
         "service_account": re.compile(r'serviceAccount["\s:=]+([a-z0-9-]+)', re.IGNORECASE),
-        
-        # Secrets and tokens
-        "bearer_token": re.compile(r'Bearer\s+[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+'),
-        "base64_secret": re.compile(r'(?:[A-Za-z0-9+/]{4}){8,}(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?'),
-        "api_key": re.compile(r'(?:api[_-]?key|apikey|token|secret)["\s:=]+([A-Za-z0-9\-_]+)', re.IGNORECASE),
-        
+
         # User information
         "email": re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'),
         "username": re.compile(r'(?:user|username)["\s:=]+([a-zA-Z0-9_-]+)', re.IGNORECASE),
-        
+
         # Paths and URLs
         "file_path": re.compile(r'(?:/[a-zA-Z0-9_.-]+)+'),
         "url": re.compile(r'https?://[^\s<>"{}|\\^`\[\]]+'),
-        
+
         # AWS/Cloud specific
         "aws_account": re.compile(r'\b\d{12}\b'),
         "aws_arn": re.compile(r'arn:aws:[a-z0-9-]+:[a-z0-9-]*:\d{12}:[a-zA-Z0-9/_-]+'),
     }
+
+    # Secret patterns ordered from most to least specific (avoids false-positive overlap).
+    # Based on TruffleHog detectors: https://github.com/trufflesecurity/trufflehog/tree/main/pkg/detectors
+    SECRET_PATTERNS = [
+        # AWS — specific prefixes first
+        ("aws_access_key",     r'\b(A3T[A-Z0-9]|AKIA|ABIA|ACCA|AGPA|AIDA|AIPA|ANPA|ANVA|APKA|AROA|ASCA|ASIA)[A-Z0-9]{16}\b', "AWS-KEY"),
+        ("aws_session_token",  r'\b(FwoGZXIvYXdzE|IQoJb3JpZ2lu)[A-Za-z0-9/+=]+\b', "AWS-SESSION"),
+        ("aws_mws_key",        r'\bamzn\.mws\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b', "AWS-MWS"),
+        # GCP
+        ("gcp_service_account", r'\b[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com\b', "GCP-SERVICE-ACCOUNT"),
+        ("google_api_key",     r'\bAIza[0-9A-Za-z\-_]{35}\b', "GOOGLE-API"),
+        ("google_oauth_id",    r'\b[0-9]+-[A-Za-z0-9_]{32}\.apps\.googleusercontent\.com\b', "GOOGLE-OAUTH"),
+        ("google_oauth_secret", r'\bGOCspx-[A-Za-z0-9\-_]{28}\b', "GOOGLE-SECRET"),
+        # Azure
+        ("azure_storage_key",  r'\b[A-Za-z0-9+/]{86}==\b', "AZURE-STORAGE"),
+        ("azure_sas_token",    r'\bsig=[A-Za-z0-9%]+&se=[0-9]+&[A-Za-z0-9&=%]+\b', "AZURE-SAS"),
+        # GitHub
+        ("github_fine_grained", r'\bgithub_pat_[A-Za-z0-9]{22}_[A-Za-z0-9]{59}\b', "GITHUB-TOKEN"),
+        ("github_pat",         r'\b(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,}\b', "GITHUB-TOKEN"),
+        # GitLab
+        ("gitlab_pat",         r'\bglpat-[A-Za-z0-9\-_]{20,}\b', "GITLAB-TOKEN"),
+        ("gitlab_pipeline",    r'\bglptt-[A-Za-z0-9]{40}\b', "GITLAB-PIPELINE"),
+        ("gitlab_runner",      r'\bGR1348941[A-Za-z0-9\-_]{20,}\b', "GITLAB-RUNNER"),
+        # Slack
+        ("slack_webhook",      r'https://hooks\.slack\.com/services/T[A-Z0-9]{8,}/B[A-Z0-9]{8,}/[A-Za-z0-9]{24}', "SLACK-WEBHOOK"),
+        ("slack_bot_token",    r'\bxoxb-[0-9]{10,13}-[0-9]{10,13}-[A-Za-z0-9]{24}\b', "SLACK-BOT"),
+        ("slack_user_token",   r'\bxoxp-[0-9]{10,13}-[0-9]{10,13}-[0-9]{10,13}-[a-f0-9]{32}\b', "SLACK-USER"),
+        ("slack_app_token",    r'\bxapp-[0-9]-[A-Z0-9]{10,}-[0-9]{10,}-[A-Za-z0-9]{64}\b', "SLACK-APP"),
+        # Discord
+        ("discord_webhook",    r'https://discord(app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]+', "DISCORD-WEBHOOK"),
+        ("discord_bot_token",  r'\b(MTA|MTE|MTI|OT|Nj|Nz|OD)[A-Za-z0-9]{23,}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27}\b', "DISCORD-BOT"),
+        # Stripe
+        ("stripe_secret_key",  r'\b(sk|rk)_(test|live)_[A-Za-z0-9]{24,}\b', "STRIPE-SECRET"),
+        ("stripe_pub_key",     r'\bpk_(test|live)_[A-Za-z0-9]{24,}\b', "STRIPE-KEY"),
+        # Twilio
+        ("twilio_api_key",     r'\bSK[a-f0-9]{32}\b', "TWILIO-KEY"),
+        ("twilio_account_sid", r'\bAC[a-f0-9]{32}\b', "TWILIO-SID"),
+        # Package managers
+        ("npm_token",          r'\bnpm_[A-Za-z0-9]{36}\b', "NPM-TOKEN"),
+        ("pypi_token",         r'\bpypi-[A-Za-z0-9\-_]{50,}\b', "PYPI-TOKEN"),
+        # DigitalOcean
+        ("digitalocean_pat",   r'\bdop_v1_[a-f0-9]{64}\b', "DO-TOKEN"),
+        # Sendgrid
+        ("sendgrid_api_key",   r'\bSG\.[A-Za-z0-9\-_]{22}\.[A-Za-z0-9\-_]{43}\b', "SENDGRID-KEY"),
+        # Sentry
+        ("sentry_dsn",         r'https://[a-f0-9]{32}@[a-z0-9]+\.ingest\.sentry\.io/[0-9]+', "SENTRY-DSN"),
+        # Database URIs (contain embedded credentials)
+        ("postgres_uri",       r'postgres(ql)?://[^:]+:[^@]+@[^/]+/\w+', "DB-POSTGRES"),
+        ("mysql_uri",          r'mysql://[^:]+:[^@]+@[^/]+/\w+', "DB-MYSQL"),
+        ("mongodb_uri",        r'mongodb(\+srv)?://[^:]+:[^@]+@[^/]+', "DB-MONGODB"),
+        ("redis_uri",          r'redis://[^:]+:[^@]+@[^/]+', "DB-REDIS"),
+        # Auth tokens
+        ("jwt",                r'\beyJ[A-Za-z0-9-_]*\.eyJ[A-Za-z0-9-_]*\.[A-Za-z0-9-_.+/]*\b', "JWT"),
+        ("bearer_token",       r'\bBearer\s+[A-Za-z0-9\-_\.]+\b', "BEARER-TOKEN"),
+        ("basic_auth",         r'\bBasic\s+[A-Za-z0-9+/]+=*\b', "BASIC-AUTH"),
+        # Private keys
+        ("private_key_content", r'-----BEGIN[^-]+-----[A-Za-z0-9+/=\s]+-----END[^-]+-----', "PRIVATE-KEY"),
+        ("private_key",        r'-----BEGIN (RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY( BLOCK)?-----', "PRIVATE-KEY"),
+        # Password fields
+        ("password_field",     r'(password|passwd|pwd|secret_key|auth_key|private_key|encryption_key)[=:]\s*["\']?[^\s"\']{8,}["\']?', "PASSWORD"),
+        # Telegram
+        ("telegram_bot_token", r'\b[0-9]{8,10}:[A-Za-z0-9_-]{35}\b', "TELEGRAM-BOT"),
+    ]
     
-    # Fields that should always be preserved for analysis
+    # Fields that should always be preserved for analysis (structural metadata, not content)
     PRESERVE_FIELDS = {
-        "rule", "priority", "output", "time", "source",
+        "rule", "priority", "time", "source",
         "output_fields.evt.type", "output_fields.syscall.type",
         "output_fields.ka.verb", "output_fields.ka.target.resource",
     }
@@ -51,35 +109,34 @@ class Obfuscator:
         """Initialize obfuscator with specified level."""
         self.level = level or settings.obfuscation_level
         self._hash_salt = self._generate_salt()
-    
+
     def _generate_salt(self) -> str:
         """Generate a consistent salt for hashing."""
         # In production, this should be a persistent secret
         return "sib-k8s-obfuscator-salt"
-    
+
     def _hash_value(self, value: str, prefix: str = "") -> str:
         """Create a consistent hash for a value."""
         hash_input = f"{self._hash_salt}:{value}"
         hash_value = hashlib.sha256(hash_input.encode()).hexdigest()[:12]
         return f"{prefix}{hash_value}"
-    
+
+    def _obfuscate_secrets(self, text: str) -> str:
+        """Redact secrets and credentials. Always applied regardless of level."""
+        for _name, pattern, label in self.SECRET_PATTERNS:
+            try:
+                text = re.sub(pattern, f"[REDACTED-{label}]", text, flags=re.IGNORECASE)
+            except re.error:
+                pass
+        return text
+
     def _obfuscate_minimal(self, text: str) -> str:
         """Minimal obfuscation - only secrets and tokens."""
-        # Remove bearer tokens
-        text = self.PATTERNS["bearer_token"].sub("<BEARER_TOKEN>", text)
-        
-        # Remove API keys
-        text = self.PATTERNS["api_key"].sub(
-            lambda m: m.group(0).split('=')[0] + '=<REDACTED>' if '=' in m.group(0) 
-            else m.group(0).split(':')[0] + ':<REDACTED>',
-            text
-        )
-        
-        return text
+        return self._obfuscate_secrets(text)
     
     def _obfuscate_standard(self, text: str) -> str:
         """Standard obfuscation - secrets, IPs, and identifiable info."""
-        text = self._obfuscate_minimal(text)
+        text = self._obfuscate_secrets(text)
         
         # Hash IP addresses
         text = self.PATTERNS["ipv4"].sub(
