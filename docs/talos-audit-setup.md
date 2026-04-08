@@ -1,23 +1,27 @@
 ---
 layout: default
 title: Talos Audit Setup
-nav_order: 3
 ---
 
 # Talos K8s Audit Configuration
 
 To enable K8s audit events in Talos, you need to configure the API server
 to send audit logs to the k8saudit webhook receiver.
-#
-# The k8saudit webhook is available at:
-#   - From within cluster: http://sib-k8s-k8saudit.sib-k8s.svc:9765/k8s-audit
-#   - Via NodePort: http://<NODE_IP>:30007/k8s-audit
-#   - Via localhost (hostNetwork): http://127.0.0.1:9765/k8s-audit
-#
-# Option 1: Using talosctl patch (recommended)
-# --------------------------------------------
 
-# First, create an audit policy file. Save this as audit-policy.yaml:
+The k8saudit webhook is available at:
+- **From within cluster:** `http://sib-k8s-k8saudit.sib-k8s.svc:9765/k8s-audit`
+- **Via NodePort:** `http://<NODE_IP>:30007/k8s-audit`
+- **Via localhost (hostNetwork):** `http://127.0.0.1:9765/k8s-audit`
+
+---
+
+## Option 1: Using talosctl patch (recommended)
+
+### Step 1: Create an audit policy file
+
+Save this as `audit-policy.yaml`:
+
+```bash
 cat <<'EOF' > /tmp/audit-policy.yaml
 apiVersion: audit.k8s.io/v1
 kind: Policy
@@ -53,8 +57,11 @@ rules:
   # Catch-all for other requests
   - level: Metadata
 EOF
+```
 
-# Then create the Talos machine config patch:
+### Step 2: Create the Talos machine config patch
+
+```bash
 cat <<'EOF' > /tmp/talos-audit-patch.yaml
 machine:
   files:
@@ -117,33 +124,49 @@ cluster:
             cluster: falco
         current-context: default
 EOF
+```
 
-# Apply the patch to your Talos node:
-# talosctl patch mc -n <TALOS_NODE_IP> --patch @/tmp/talos-audit-patch.yaml
+### Step 3: Apply the patch
 
-# Option 2: Manual talosctl edit
-# ------------------------------
-# talosctl edit machineconfig -n <TALOS_NODE_IP>
+```bash
+talosctl patch mc -n <TALOS_NODE_IP> --patch @/tmp/talos-audit-patch.yaml
+```
 
-# Option 3: If using Talos with controlplane config
-# -------------------------------------------------
-# Add the following to your controlplane.yaml:
-#
-# cluster:
-#   apiServer:
-#     auditPolicy:
-#       apiVersion: audit.k8s.io/v1
-#       kind: Policy
-#       rules:
-#         - level: Metadata
-#           resources:
-#             - group: ""
-#               resources: ["*"]
-#
-# Note: Talos 1.5+ supports inline auditPolicy configuration
+---
 
-# After applying the config, the API server will restart and start
-# sending audit events to the k8saudit webhook.
+## Option 2: Manual talosctl edit
 
-# To verify audit events are being received:
-# kubectl logs -n sib-k8s -l app.kubernetes.io/component=k8saudit -f
+```bash
+talosctl edit machineconfig -n <TALOS_NODE_IP>
+```
+
+---
+
+## Option 3: Talos inline audit policy (Talos 1.5+)
+
+Add the following to your `controlplane.yaml`:
+
+```yaml
+cluster:
+  apiServer:
+    auditPolicy:
+      apiVersion: audit.k8s.io/v1
+      kind: Policy
+      rules:
+        - level: Metadata
+          resources:
+            - group: ""
+              resources: ["*"]
+```
+
+---
+
+## Verifying audit events
+
+After applying the config, the API server will restart and begin sending audit events to the k8saudit webhook.
+
+To verify events are being received:
+
+```bash
+kubectl logs -n sib-k8s -l app.kubernetes.io/component=k8saudit -f
+```

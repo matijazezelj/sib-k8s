@@ -1,7 +1,6 @@
 ---
 layout: default
 title: Cloud-Agnostic Deployment
-nav_order: 2
 ---
 
 # Cloud-Agnostic K8s Audit Scenarios

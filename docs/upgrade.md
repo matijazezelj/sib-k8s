@@ -1,7 +1,6 @@
 ---
 layout: default
 title: Upgrade Guide
-nav_order: 4
 ---
 
 # Upgrade Guide
