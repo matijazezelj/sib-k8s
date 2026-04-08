@@ -1,6 +1,12 @@
 # Downloaded chart dependencies
 charts/*.tgz
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
 # Local dev files
 .DS_Store
 *.swp
