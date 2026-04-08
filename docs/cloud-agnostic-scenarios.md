@@ -1,3 +1,9 @@
+---
+layout: default
+title: Cloud-Agnostic Deployment
+nav_order: 2
+---
+
 # Cloud-Agnostic K8s Audit Scenarios
 
 This document outlines the different deployment scenarios for SIB-K8s across various Kubernetes environments. The Helm chart now supports a unified approach where you simply set `auditPlugin.type` to configure the appropriate plugin for your cloud provider.

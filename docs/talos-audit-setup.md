@@ -1,8 +1,13 @@
+---
+layout: default
+title: Talos Audit Setup
+nav_order: 3
+---
+
 # Talos K8s Audit Configuration
-# ==============================
-# 
-# To enable K8s audit events in Talos, you need to configure the API server
-# to send audit logs to the k8saudit webhook receiver.
+
+To enable K8s audit events in Talos, you need to configure the API server
+to send audit logs to the k8saudit webhook receiver.
 #
 # The k8saudit webhook is available at:
 #   - From within cluster: http://sib-k8s-k8saudit.sib-k8s.svc:9765/k8s-audit

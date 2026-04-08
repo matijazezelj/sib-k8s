@@ -25,7 +25,7 @@ K8s Audit Sources (webhook / CloudWatch / Cloud Logging / Event Hub)
 
 ## Features
 
-- **Multi-cloud audit support** — `k8saudit` (webhook), `k8saudit-eks`, `k8saudit-gke`, `k8saudit-aks`
+- **K8s audit log collection** — webhook receiver for generic Kubernetes clusters; cloud provider plugins (EKS, GKE, AKS) on the roadmap
 - **Runtime detection** — syscall monitoring with Falco (eBPF)
 - **AI analysis** — privacy-preserving alert analysis with MITRE ATT&CK mapping
 - **Obfuscation** — three levels (minimal / standard / paranoid) to protect sensitive data before LLM calls
@@ -70,48 +70,26 @@ cd sib-k8s
 helm dependency update
 ```
 
-Install with the appropriate values file for your environment:
-
 ```bash
 # Generic Kubernetes (webhook)
 helm install sib-k8s . -f values-k8saudit.yaml -n sib-k8s --create-namespace
-
-# AWS EKS
-helm install sib-k8s . -f values-eks.yaml \
-  --set auditPlugin.k8sauditEks.logGroup="/aws/eks/my-cluster/cluster" \
-  --set auditPlugin.k8sauditEks.region="us-east-1" \
-  -n sib-k8s --create-namespace
-
-# Google GKE
-helm install sib-k8s . -f values-gke.yaml \
-  --set auditPlugin.k8sauditGke.projectId="my-project" \
-  --set auditPlugin.k8sauditGke.clusterId="my-cluster" \
-  --set auditPlugin.k8sauditGke.location="us-central1" \
-  -n sib-k8s --create-namespace
-
-# Azure AKS
-helm install sib-k8s . -f values-aks.yaml \
-  --set auditPlugin.k8sauditAks.subscriptionId="..." \
-  --set auditPlugin.k8sauditAks.resourceGroup="my-rg" \
-  --set auditPlugin.k8sauditAks.clusterName="my-cluster" \
-  --set auditPlugin.k8sauditAks.eventHubNamespace="my-eh-ns" \
-  -n sib-k8s --create-namespace
 ```
 
-See [docs/cloud-agnostic-scenarios.md](docs/cloud-agnostic-scenarios.md) for detailed cloud-specific setup (IAM roles, Workload Identity, Event Hub, etc.).
+Then configure your API server to send audit events to the webhook — see [docs/cloud-agnostic-scenarios.md](docs/cloud-agnostic-scenarios.md) for per-provider setup (EKS, GKE, AKS, Talos).
 
 ## Configuration
 
 ### Audit Plugin
 
-Set `auditPlugin.type` to one of:
+The default mode is `k8saudit` (webhook). Your API server posts audit events to the in-cluster receiver.
 
-| Value | Source | Auth |
-|-------|--------|------|
-| `k8saudit` | Webhook | None (requires API server config) |
-| `k8saudit-eks` | CloudWatch Logs | IRSA |
-| `k8saudit-gke` | Cloud Logging | Workload Identity |
-| `k8saudit-aks` | Event Hub | Workload Identity |
+| Provider | How to route audit logs |
+|----------|------------------------|
+| Generic K8s | Configure `--audit-webhook-config-file` on kube-apiserver |
+| AWS EKS | Enable CloudWatch audit logs, forward to webhook via Fluentbit/Vector |
+| Google GKE | Cloud Logging → Pub/Sub → webhook forwarder |
+| Azure AKS | Diagnostic settings → Event Hub → webhook forwarder |
+| Talos Linux | See [docs/talos-audit-setup.md](docs/talos-audit-setup.md) |
 
 ### Analysis Service
 
@@ -174,13 +152,10 @@ curl http://localhost:8080/health
 
 ## Values Files
 
-| File | Environment |
-|------|-------------|
-| `values.yaml` | Defaults (all options documented) |
-| `values-eks.yaml` | AWS EKS |
-| `values-gke.yaml` | Google GKE |
-| `values-aks.yaml` | Azure AKS |
-| `values-k8saudit.yaml` | Generic webhook |
+| File | Purpose |
+|------|---------|
+| `values.yaml` | Defaults — all options documented |
+| `values-k8saudit.yaml` | Generic Kubernetes (webhook) — start here |
 
 ## Security
 
@@ -193,8 +168,10 @@ trivy fs --scanners vuln,secret,misconfig .
 
 ## Documentation
 
-- [Cloud-Agnostic Deployment Scenarios](docs/cloud-agnostic-scenarios.md) — detailed setup for each cloud provider
+- [Cloud-Agnostic Deployment Scenarios](docs/cloud-agnostic-scenarios.md) — API server webhook setup for EKS, GKE, AKS, and generic clusters
 - [Talos Audit Setup](docs/talos-audit-setup.md) — configuring audit webhooks on Talos Linux
+- [Upgrade Guide](docs/upgrade.md) — version-specific upgrade instructions
+- [Changelog](CHANGELOG.md) — full version history
 
 ## License
 
