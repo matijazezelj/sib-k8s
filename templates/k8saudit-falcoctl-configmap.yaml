@@ -1,12 +1,4 @@
-{{- $pluginType := .Values.auditPlugin.type | default "k8saudit" }}
-{{- $isWebhook := eq $pluginType "k8saudit" }}
-{{- $isEks := eq $pluginType "k8saudit-eks" }}
-{{- $isGke := eq $pluginType "k8saudit-gke" }}
-{{- $isAks := eq $pluginType "k8saudit-aks" }}
-{{- $isEnabled := or $isWebhook $isEks $isGke $isAks }}
-{{- $pluginVersion := .Values.auditPlugin.version | default "0.16" }}
-{{- $rulesVersion := .Values.auditPlugin.rulesVersion | default "0.16" }}
-{{- if $isEnabled }}
+{{- if .Values.auditPlugin.k8saudit.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -25,23 +17,8 @@ data:
         pluginsDir: /plugins
         rulesfilesDir: /rulesfiles
         refs:
-          {{- if $isWebhook }}
-          # Generic k8saudit plugin
-          - k8saudit-rules:{{ $rulesVersion }}
-          - k8saudit:{{ $pluginVersion }}
-          {{- else if $isEks }}
-          # AWS EKS plugin
-          - k8saudit-rules:{{ $rulesVersion }}
-          - k8saudit-eks:{{ $pluginVersion }}
-          {{- else if $isGke }}
-          # Google GKE plugin
-          - k8saudit-rules:{{ $rulesVersion }}
-          - k8saudit-gke:{{ $pluginVersion }}
-          {{- else if $isAks }}
-          # Azure AKS plugin
-          - k8saudit-rules:{{ $rulesVersion }}
-          - k8saudit-aks:{{ $pluginVersion }}
-          {{- end }}
+          - k8saudit:0.11
+          - k8saudit-rules:0.11
           - json:0.7
         resolveDeps: true
     indexes:

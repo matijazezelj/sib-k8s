@@ -1,7 +1,4 @@
-{{- $pluginType := .Values.auditPlugin.type | default "k8saudit" }}
-{{- $isWebhook := eq $pluginType "k8saudit" }}
-{{- /* Service is only needed for webhook mode - cloud plugins poll their respective APIs */}}
-{{- if $isWebhook }}
+{{- if .Values.auditPlugin.k8saudit.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
