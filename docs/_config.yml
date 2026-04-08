@@ -1,6 +1,6 @@
 title: SIB-K8s
 description: SIEM in a Box for Kubernetes — Helm chart for K8s security monitoring with Falco, Loki, and AI-powered alert analysis.
-theme: just-the-docs
+remote_theme: just-the-docs/just-the-docs
 color_scheme: dark
 
 url: "https://matijazezelj.github.io"
